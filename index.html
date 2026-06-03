@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>حاسبة استحقاقات - شركة نفط الشمال</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans Arabic','Segoe UI',sans-serif;direction:rtl;background:#0d0d0d;min-height:100vh;color:#e8e8e8}
+  #app{max-width:480px;margin:0 auto;padding-bottom:80px}
+
+  /* Header */
+  .header{position:relative;overflow:hidden;background:linear-gradient(135deg,#0a2a0a,#1a3a1a,#0f2f0f);padding:20px 16px 24px}
+  .header-grad{position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 30% 50%,rgba(76,175,80,0.15) 0%,transparent 70%)}
+  .header-content{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .app-title{font-size:20px;font-weight:800;color:#fff;letter-spacing:.5px}
+  .app-subtitle{font-size:12px;color:#8bc34a;margin-top:2px}
+
+  /* Save badge */
+  .save-badge{position:absolute;top:12px;left:12px;border-radius:20px;padding:4px 10px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;transition:opacity .3s;z-index:10}
+
+  /* Clear button */
+  .clear-btn{margin-top:10px;background:transparent;border:1px solid #F4433644;color:#F44336;border-radius:20px;padding:4px 14px;font-size:11px;cursor:pointer;font-weight:600}
+  .clear-confirm{margin-top:10px;display:flex;gap:8px;align-items:center;background:#2a0000;border-radius:20px;padding:6px 14px;border:1px solid #F44336}
+  .confirm-yes{background:#F44336;border:none;color:#fff;border-radius:10px;padding:3px 10px;font-size:11px;cursor:pointer;font-weight:700}
+  .confirm-no{background:#1a1a1a;border:1px solid #444;color:#aaa;border-radius:10px;padding:3px 10px;font-size:11px;cursor:pointer}
+
+  /* Card */
+  .card{margin:12px 12px 0;background:#1a1a1a;border-radius:16px;padding:14px 16px;border:1px solid #2a2a2a}
+  .section-title{font-size:14px;font-weight:700;color:#8bc34a;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+  /* Form */
+  .row{display:flex;gap:10px;margin-bottom:10px}
+  .field{flex:1}
+  .field label{font-size:11px;color:#888;display:block;margin-bottom:4px}
+  .field input,.field select{width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#e8e8e8;font-size:13px;outline:none;font-family:inherit;direction:rtl}
+  .field input[type=date]{text-align:center}
+  .field input.error,.field select.error{border-color:#f55}
+  .calc-btn{width:100%;margin-top:10px;background:linear-gradient(135deg,#4CAF50,#2d7a30);border:none;border-radius:10px;padding:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+  .form-error-msg{margin-top:8px;background:#1e0000;border:1px solid #f5554433;border-radius:8px;padding:8px 12px;color:#f77;font-size:12px;text-align:center}
+
+  /* Tabs */
+  .tab-bar{position:sticky;top:0;z-index:100;display:flex;background:#111;border-bottom:1px solid #222;margin-top:12px}
+  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;background:none;border:none;color:#666;cursor:pointer;font-family:inherit}
+  .tab-btn .tab-icon{font-size:15px}
+  .tab-btn .tab-label{font-size:9px}
+  .tab-btn.active{color:#4CAF50;border-bottom:2px solid #4CAF50}
+  .tab-content{padding:0 0 12px}
+
+  /* Big card */
+  .big-card{margin:12px 12px 0;background:linear-gradient(135deg,#0d2a0d,#1a3d1a);border-radius:20px;padding:24px 20px;text-align:center;border:1px solid #2d4a2d}
+  .big-card-label{font-size:13px;color:#8bc34a;margin-bottom:8px}
+  .big-card-value{font-size:36px;font-weight:900;color:#fff;line-height:1}
+  .big-card-sub{font-size:12px;color:#666;margin-top:8px}
+  .unit{font-size:14px;color:#8bc34a}
+
+  /* Info row */
+  .info-row{display:flex;gap:10px;margin:10px 12px 0}
+  .info-box{flex:1;background:#1a1a1a;border-radius:12px;padding:12px;text-align:center;border:1px solid #2a2a2a}
+  .info-label{font-size:11px;color:#666;margin-bottom:4px}
+  .info-value{font-size:16px;font-weight:700;color:#fff}
+
+  /* Promotion card */
+  .promo-card{margin:10px 12px 0;background:linear-gradient(135deg,#1a1200,#2a2000);border-radius:16px;padding:16px;border:1px solid #3a3000}
+  .promo-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .promo-title{font-size:15px;font-weight:700;color:#FFD700}
+  .promo-dates{display:flex;gap:8px;margin-bottom:10px}
+  .promo-date-box{flex:1;background:#111;border-radius:10px;padding:10px 14px;border:1px solid #222}
+  .promo-date-box.effective{border-color:#FFD70066}
+  .promo-date-box.faded{opacity:.55}
+  .promo-date-label{font-size:11px;color:#666;margin-bottom:4px}
+  .promo-date{font-size:14px;font-weight:600;color:#FFD700}
+  .promo-date.small{font-size:12px;color:#aaa}
+  .reduction-badge{display:flex;align-items:center;gap:8px;background:#2a2000;border-radius:10px;padding:8px 12px;margin-bottom:10px;color:#ccc;font-size:13px;border:1px solid #FFD70033}
+  .countdown{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;background:#111;border-radius:10px;padding:10px;margin-bottom:10px;align-items:center}
+  .cd-num{font-size:24px;font-weight:900;color:#FF9800}
+  .cd-unit{font-size:12px;color:#888;margin-left:2px;margin-right:8px}
+  .cd-label{width:100%;text-align:center;font-size:11px;color:#aaa;margin-top:4px}
+  .eligible{text-align:center;background:#0d2a0d;border-radius:10px;padding:12px;color:#4CAF50;font-weight:700;margin-bottom:10px}
+  .overdue-box{background:#2a0000;border:1px solid #F4433655;border-radius:10px;padding:10px 14px;margin-top:8px;text-align:center}
+  .raise-row{display:flex;justify-content:space-between;align-items:center;background:#111;border-radius:10px;padding:10px 14px}
+  .raise-label{font-size:13px;color:#888}
+  .raise-val{font-size:15px;font-weight:700;color:#4CAF50}
+
+  /* Progress */
+  .progress-label{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:8px}
+  .progress-track{height:8px;background:#222;border-radius:4px;overflow:hidden;margin-bottom:10px}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#4CAF50,#8bc34a);border-radius:4px}
+  .stage-grid{display:flex;gap:4px;flex-wrap:wrap}
+  .stage-dot{width:32px;height:32px;border-radius:8px;background:#222;display:flex;align-items:center;justify-content:center;font-size:12px;color:#555;font-weight:600}
+  .stage-dot.active{background:#1a3a1a;color:#4CAF50}
+  .stage-dot.current{background:#4CAF50;color:#fff;box-shadow:0 0 8px #4CAF50}
+
+  /* Commendations */
+  .comm-row{background:#111;border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid #2a2a2a}
+  .comm-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .add-btn{background:#1a3a1a;border:1px solid #4CAF50;color:#4CAF50;border-radius:10px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:700;font-family:inherit}
+  .del-btn{margin-right:auto;background:#2a0000;border:none;color:#F44336;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:13px;font-family:inherit}
+  .comm-fields{display:flex;gap:8px;flex-wrap:wrap}
+  .comm-fields .field{flex:1;min-width:110px}
+  .comm-effect{margin-top:8px;display:flex;justify-content:space-between;background:#0d0d0d;border-radius:8px;padding:6px 10px}
+
+  /* Retirement */
+  .retire-big{margin:12px 12px 0;border-radius:20px;padding:24px 20px;text-align:center}
+  .retire-countdown{margin:10px 12px 0;background:#0f1a2a;border-radius:14px;padding:16px;border:1px solid #1565C033}
+  .retire-box{text-align:center;background:#111;border-radius:10px;padding:12px 16px;min-width:70px;border:1px solid #1565C044}
+  .service-duration{margin:10px 12px 0;background:linear-gradient(135deg,#0d2a0d,#1a3d1a);border-radius:14px;padding:16px;border:1px solid #2d4a2d}
+
+  /* Ration */
+  .ration-card{margin:10px 12px 0;border-radius:14px;padding:16px}
+  .ration-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#111;border-radius:8px;margin-bottom:6px;border:1px solid #2a2a2a}
+  .ration-total{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;margin-top:8px}
+  .ration-verdict{margin-top:10px;text-align:center;padding:8px;border-radius:8px}
+
+  /* Certificate */
+  .shukr-card{margin:12px 12px 0;background:linear-gradient(135deg,#0d0d0d,#1a1a00);border:2px solid #FFD700;border-radius:20px;padding:20px 16px;text-align:center}
+  .shukr-title{font-size:16px;font-weight:800;color:#FFD700;margin-bottom:16px;letter-spacing:1px}
+  .shukr-body{line-height:2;color:#ccc;font-size:14px;text-align:center}
+
+  /* Developer */
+  .dev-card{margin:24px 12px;background:linear-gradient(135deg,#0d1a0d,#111);border:1px solid #2a3a2a;border-radius:18px;padding:32px 20px;text-align:center;position:relative;overflow:hidden}
+  .dev-grad{position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 30%,rgba(76,175,80,0.10) 0%,transparent 65%);pointer-events:none}
+  .dev-phone{display:inline-flex;align-items:center;gap:10px;background:#1a3a1a;border:1px solid #4CAF5066;border-radius:12px;padding:12px 24px;color:#8bc34a;font-size:15px;font-weight:700;text-decoration:none;font-family:inherit}
+  .storage-info{margin-top:24px;background:#0d0d0d;border-radius:12px;padding:14px;border:1px solid #1a2a1a;text-align:right}
+
+  /* Empty state */
+  .empty-state{text-align:center;padding:60px 20px;color:#444}
+  .empty-state .empty-icon{font-size:48px}
+  .empty-state p{font-size:15px;margin-top:12px}
+
+  /* PDF bar */
+  .pdf-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:linear-gradient(to top,#0d0d0d 80%,transparent);padding:12px 16px 16px;z-index:200}
+  .pdf-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#1a3a5a,#0d2a4a);border:1px solid #1565C066;border-radius:14px;padding:14px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(21,101,192,.3);font-family:inherit}
+
+  @media print{
+    .no-print{display:none!important}
+    body{background:#fff!important;color:#000!important}
+  }
+
+
+  /* ── AUTH ── */
+  #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:#0d0d0d}
+  .auth-card{width:100%;max-width:400px;background:#1a1a1a;border-radius:24px;padding:32px 24px;border:1px solid #2a2a2a;text-align:center}
+  .auth-logo{font-size:52px;margin-bottom:12px}
+  .auth-title{font-size:20px;font-weight:800;color:#fff;margin-bottom:4px}
+  .auth-sub{font-size:12px;color:#8bc34a;margin-bottom:28px}
+  .auth-tabs{display:flex;background:#111;border-radius:12px;padding:4px;margin-bottom:24px;gap:4px}
+  .auth-tab{flex:1;padding:8px;border:none;border-radius:9px;background:transparent;color:#666;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.2s}
+  .auth-tab.active{background:#1a3a1a;color:#4CAF50}
+  .auth-field{margin-bottom:14px;text-align:right}
+  .auth-field label{font-size:11px;color:#888;display:block;margin-bottom:5px}
+  .auth-field input{width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:11px 14px;color:#e8e8e8;font-size:14px;outline:none;font-family:inherit}
+  .auth-field input:focus{border-color:#4CAF50}
+  .auth-btn{width:100%;padding:13px;background:linear-gradient(135deg,#4CAF50,#2d7a30);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
+  .auth-btn:disabled{opacity:.5;cursor:not-allowed}
+  .auth-msg{margin-top:12px;font-size:12px;padding:8px 12px;border-radius:8px;display:none}
+  .auth-msg.error{background:#2a0000;color:#f77;border:1px solid #f5554433;display:block}
+  .auth-msg.success{background:#0d2a0d;color:#4CAF50;border:1px solid #4CAF5033;display:block}
+  .auth-divider{border:none;border-top:1px solid #222;margin:20px 0}
+  .auth-reset{background:none;border:none;color:#666;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline}
+  .auth-reset:hover{color:#8bc34a}
+  .user-bar{display:flex;align-items:center;gap:10px;background:#111;border-radius:12px;padding:8px 12px;margin:10px 12px 0;border:1px solid #1a3a1a}
+  .user-email{flex:1;font-size:12px;color:#8bc34a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .logout-btn{background:#2a0000;border:1px solid #F4433644;color:#F44336;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:700;font-family:inherit}
+  .google-btn{width:100%;padding:11px;background:#fff;border:1px solid #ddd;border-radius:12px;color:#444;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px}
+  .google-btn:hover{background:#f5f5f5}
+
+  /* Commend big card */
+  .commend-big{margin:12px 12px 0;background:linear-gradient(135deg,#1a1200,#2d2000);border-radius:20px;padding:24px 20px;text-align:center;border:1px solid #2d4a2d}
+</style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+<div id="auth-screen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">🏛</div>
+    <div class="auth-title">حاسبة استحقاقات</div>
+    <div class="auth-sub">شركة نفط الشمال</div>
+
+    <!-- ── شاشة 1: تسجيل دخول / إنشاء حساب ── -->
+    <div id="auth-main">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">تسجيل الدخول</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">إنشاء حساب</button>
+      </div>
+
+      <!-- نموذج الدخول -->
+      <div id="login-form">
+        <div class="auth-field"><label>البريد الإلكتروني</label><input type="email" id="login-email" placeholder="example@gmail.com" dir="ltr"/></div>
+        <div class="auth-field"><label>كلمة المرور</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
+        <button class="auth-btn" id="login-btn" onclick="doLogin()">🔐 دخول</button>
+        <hr class="auth-divider"/>
+        <button class="google-btn" id="google-btn" onclick="doGoogleLogin()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px"/>
+          تسجيل الدخول بـ Google
+        </button>
+        <hr class="auth-divider"/>
+        <button class="auth-reset" onclick="doReset()">نسيت كلمة المرور؟</button>
+      </div>
+
+      <!-- نموذج التسجيل -->
+      <div id="register-form" style="display:none">
+        <div class="auth-field"><label>البريد الإلكتروني</label><input type="email" id="reg-email" placeholder="example@gmail.com" dir="ltr"/></div>
+        <div class="auth-field"><label>كلمة المرور (6 أحرف على الأقل)</label><input type="password" id="reg-pass" placeholder="••••••••"/></div>
+        <div class="auth-field"><label>تأكيد كلمة المرور</label><input type="password" id="reg-pass2" placeholder="••••••••"/></div>
+        <button class="auth-btn" id="reg-btn" onclick="doRegister()">✅ إنشاء الحساب</button>
+      </div>
+    </div>
+
+    <!-- ── شاشة 2: إدخال كود OTP ── -->
+    <div id="auth-otp" style="display:none">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:40px;margin-bottom:10px">📧</div>
+        <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">تحقق من بريدك الإلكتروني</div>
+        <div style="font-size:12px;color:#8bc34a" id="otp-email-label"></div>
+        <div style="font-size:11px;color:#666;margin-top:6px">أرسلنا رابط تسجيل الدخول إلى بريدك</div>
+      </div>
+      <div class="auth-field">
+        <label>أو أدخل كود التحقق (6 أرقام)</label>
+        <input type="text" id="otp-input" placeholder="_ _ _ _ _ _" maxlength="6" inputmode="numeric" dir="ltr"
+          style="text-align:center;font-size:24px;letter-spacing:8px;font-weight:700"
+          oninput="this.value=this.value.replace(/\D/g,'').slice(0,6); if(this.value.length===6) verifyOTP()"/>
+      </div>
+      <button class="auth-btn" id="otp-btn" onclick="verifyOTP()">✅ تحقق</button>
+      <div style="text-align:center;margin-top:14px">
+        <button class="auth-reset" onclick="resendOTP()" id="resend-btn">إعادة إرسال الكود</button>
+        <span id="resend-timer" style="font-size:11px;color:#666;display:none"></span>
+      </div>
+      <div style="text-align:center;margin-top:8px">
+        <button class="auth-reset" onclick="backToLogin()">← رجوع</button>
+      </div>
+    </div>
+
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none"></div>
+
+<script>
+// ══════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════
+const GRADES={1:"الأولى",2:"الثانية",3:"الثالثة",4:"الرابعة",5:"الخامسة",6:"السادسة",7:"السابعة",8:"الثامنة",9:"التاسعة",10:"العاشرة"};
+const SALARY_SCALE={1:[910,930,950,970,990,1010,1030,1050,1070,1090,1110],2:[723,740,757,774,791,808,825,842,859,876,893],3:[600,610,620,630,640,650,660,670,680,690,700],4:[490,500,510,520,530,540,550,560,570,580,590],5:[429,435,441,447,453,459,465,471,477,483,489],6:[362,368,374,380,386,392,398,404,410,416,422],7:[296,302,308,314,320,326,332,338,344,350,356],8:[260,263,266,269,272,275,278,281,284,287,290],9:[210,213,216,219,222,225,228,231,234,237,240],10:[170,173,176,179,182,185,188,191,194,197,200]};
+const ANNUAL_RAISE={1:20,2:17.5,3:10,4:8,5:6,6:6,7:6,8:4,9:4,10:4};
+const CERT_ALLOWANCES={doctorate:100,masters:75,high_diploma:55,bachelor:45,diploma:35,preparatory:25};
+const DANGER_RATES={high:30,medium:26};
+const STAGE_DAYS={1:1825,2:1825,3:1825,4:1825,5:1825,6:1460,7:1460,8:1460,9:1460,10:1460};
+const getStageDays=g=>STAGE_DAYS[g]||1460;
+const DEFAULT_TYPES=[
+  {id:"pm",      label:"شكر وتقدير رئيس الوزراء",     daysReduction:180,color:"#FFD700",icon:"🏅"},
+  {id:"minister",label:"شكر وتقدير وزير",              daysReduction:90, color:"#C0C0C0",icon:"🥇"},
+  {id:"company", label:"شكر وتقدير شركة أو جهة أخرى", daysReduction:30, color:"#CD7F32",icon:"🥈"},
+];
+const STORAGE_KEY="noc-calculator:userData";
+const TABS=[
+  {id:"service",   label:"الخدمة",          icon:"⏱"},
+  {id:"commend",   label:"الشكر والتقدير",  icon:"🎖"},
+  {id:"retire",    label:"تاريخ التقاعد",   icon:"🎓"},
+  {id:"ration",    label:"إيقاف البطاقة",   icon:"🛒"},
+  {id:"salary",    label:"شهادة شكر",       icon:"📜"},
+  {id:"developer", label:"المطوّر",         icon:"👨‍💻"},
+];
+
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+let state = {
+  tab:"service",
+  form:{name:"",employeeId:"",birthDate:"",hireDate:"",grade:"7",stage:"1",certificate:"bachelor",dangerLevel:"medium",position:"normal",maritalStatus:"single",children:"0",workLocation:"60",lastPromotionDate:"",lastRaiseDate:""},
+  commTypes:DEFAULT_TYPES.map(t=>({...t})),
+  commendations:[],
+  result:null,
+  formErrors:{},
+  storageStatus:"idle",
+  showClearConfirm:false,
+};
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+const fmt=n=>(n??0).toLocaleString("en-US");
+const fmtDur=days=>{const d=Math.max(0,days);return{years:Math.floor(d/365),months:Math.floor((d%365)/30),days:d%30,total:d};};
+const fmtDate=d=>d instanceof Date&&!isNaN(d)?d.toLocaleDateString("en-GB",{year:"numeric",month:"2-digit",day:"2-digit"}):"—";
+const fmtDateStr=s=>s?fmtDate(new Date(s)):"—";
+
+// ══════════════════════════════════════
+//  STORAGE
+// ══════════════════════════════════════
+let saveTimer=null;
+function scheduleSave(){
+  state.storageStatus="saving";render();
+  if(saveTimer)clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify({form:state.form,commTypes:state.commTypes,commendations:state.commendations}));
+      state.storageStatus="saved";render();
+      setTimeout(()=>{state.storageStatus="idle";render();},2000);
+    }catch{
+      state.storageStatus="error";render();
+      setTimeout(()=>{state.storageStatus="idle";render();},3000);
+    }
+  },800);
+}
+function loadSaved(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return;
+    const saved=JSON.parse(raw);
+    if(saved.form)        state.form={...state.form,...saved.form};
+    if(saved.commTypes)   state.commTypes=saved.commTypes;
+    if(saved.commendations)state.commendations=saved.commendations;
+    state.storageStatus="loaded";
+    setTimeout(()=>{state.storageStatus="idle";render();},2500);
+  }catch{}
+}
+function clearData(){
+  localStorage.removeItem(STORAGE_KEY);
+  state.form={name:"",employeeId:"",birthDate:"",hireDate:"",grade:"7",stage:"1",certificate:"bachelor",dangerLevel:"medium",position:"normal",maritalStatus:"single",children:"0",workLocation:"60",lastPromotionDate:"",lastRaiseDate:""};
+  state.commTypes=DEFAULT_TYPES.map(t=>({...t}));
+  state.commendations=[];
+  state.result=null;
+  state.formErrors={};
+  state.showClearConfirm=false;
+  state.storageStatus="idle";
+  render();
+}
+
+// ══════════════════════════════════════
+//  CALCULATE
+// ══════════════════════════════════════
+function getEffectiveDays(c){
+  if(c.customDays!==null&&c.customDays!=="")return parseInt(c.customDays)||0;
+  const t=state.commTypes.find(x=>x.id===c.type);
+  return t?t.daysReduction:0;
+}
+function calculate(){
+  const {hireDate,grade,stage,certificate,dangerLevel,position,maritalStatus,children,workLocation,lastPromotionDate}=state.form;
+  if(!hireDate){state.result=null;return;}
+  const currentDate=new Date().toISOString().split("T")[0];
+  const totalDays=Math.floor((new Date(currentDate)-new Date(hireDate))/86400000);
+  const duration=fmtDur(totalDays);
+  const totalYears=totalDays/365;
+  const stageNum=parseInt(stage),gradeNum=parseInt(grade);
+  const BASE=getStageDays(gradeNum);
+  const hDate=new Date(hireDate);
+  const today=new Date(currentDate);
+
+  const stageStart=lastPromotionDate?new Date(lastPromotionDate):(()=>{const d=new Date(hDate);d.setFullYear(hDate.getFullYear()+(stageNum-1)*2);return d;})();
+  const raiseBase=state.form.lastRaiseDate?new Date(state.form.lastRaiseDate):new Date(hireDate);
+
+  const promoReductionDays=state.commendations.reduce((s,c)=>{if(!c.date)return s;if(new Date(c.date)<=stageStart)return s;return s+getEffectiveDays(c);},0);
+  const raiseReductionDays=state.commendations.reduce((s,c)=>{if(!c.date)return s;if(new Date(c.date)<=raiseBase)return s;return s+getEffectiveDays(c);},0);
+
+  const reductionDays=promoReductionDays;
+  const daysFromStageStart=Math.max(0,Math.ceil((today-stageStart)/86400000));
+  const daysRemainingOrig=Math.max(0,BASE-daysFromStageStart);
+  const daysRemainingEff=Math.max(0,daysRemainingOrig-promoReductionDays);
+  const overdueOrig=daysRemainingOrig===0?Math.max(0,daysFromStageStart-BASE):0;
+  const overdueEff=daysRemainingEff===0?Math.max(0,daysFromStageStart-(BASE-promoReductionDays)):0;
+
+  const nextStageDateOriginal=new Date(stageStart);nextStageDateOriginal.setDate(stageStart.getDate()+BASE);
+  const nextStageDateEffective=new Date(nextStageDateOriginal);nextStageDateEffective.setDate(nextStageDateEffective.getDate()-promoReductionDays);
+  const daysToNext=Math.max(0,Math.ceil((nextStageDateEffective-today)/86400000));
+  const nextStageDuration=fmtDur(daysToNext);
+  const nextStageNum=Math.min(stageNum+1,11);
+  const annualRaise=ANNUAL_RAISE[gradeNum]*1000;
+
+  const annualRaiseDateOrig=new Date(raiseBase);annualRaiseDateOrig.setFullYear(raiseBase.getFullYear()+1);
+  const annualRaiseDate=new Date(annualRaiseDateOrig);annualRaiseDate.setDate(annualRaiseDate.getDate()-raiseReductionDays);
+
+  const baseSalary=(SALARY_SCALE[gradeNum]?.[stageNum-1]||0)*1000;
+  const certAllowance=Math.round(baseSalary*(CERT_ALLOWANCES[certificate]||0)/100);
+  const specialAllowance=Math.round(baseSalary*0.30);
+  const dangerAllowance=Math.round(baseSalary*DANGER_RATES[dangerLevel]/100);
+  let positionAllowance=0;
+  if(position==="deputy_dg")positionAllowance=Math.round(baseSalary*0.30);
+  else if(position==="board_director")positionAllowance=Math.round(baseSalary*0.25);
+  else if(position==="dept_director")positionAllowance=Math.round(baseSalary*0.20);
+  else if(position==="section_chief")positionAllowance=Math.round(baseSalary*0.15);
+  const maritalAllowance=maritalStatus==="married"?50000:0;
+  const childrenAllowance=Math.min(parseInt(children),4)*10000;
+  const locationAllowance=parseInt(workLocation)*1000;
+  const totalAllowances=certAllowance+specialAllowance+dangerAllowance+positionAllowance+maritalAllowance+childrenAllowance+locationAllowance;
+  const retirementDed=Math.round(baseSalary*0.10),supportFundDed=1000,orphansDed=1000;
+  const stampDed=Math.round(2000000/12),socialDed=Math.round(baseSalary*0.00205);
+  const netBT=baseSalary+locationAllowance-retirementDed;
+  let taxAmount=0;
+  if(netBT>83333){if(netBT<=166666)taxAmount=Math.round((netBT-83333)*0.03+83333*0.03);else if(netBT<=333333)taxAmount=Math.round((netBT-166666)*0.05+166666*0.03);else taxAmount=Math.round((netBT-333333)*0.10+333333*0.08);}
+  const totalDeductions=retirementDed+supportFundDed+orphansDed+stampDed+socialDed+taxAmount;
+  const netSalary=baseSalary+totalAllowances-totalDeductions;
+  const commByType={};
+  state.commTypes.forEach(t=>{commByType[t.id]=state.commendations.filter(c=>c.type===t.id).length;});
+
+  state.result={duration,totalDays,totalYears,nextStageDateOriginal,nextStageDateEffective,nextStageDuration,nextStageNum,daysToNext,reductionDays,overdueOrig,overdueEff,commByType,baseSalary,annualRaise,annualRaiseDate,allowances:{cert:certAllowance,special:specialAllowance,danger:dangerAllowance,position:positionAllowance,marital:maritalAllowance,children:childrenAllowance,location:locationAllowance},totalAllowances,deductions:{retirement:retirementDed,support:supportFundDed,orphans:orphansDed,stamp:stampDed,social:socialDed,tax:taxAmount},totalDeductions,netSalary};
+}
+
+function validateForm(){
+  const e={};
+  if(!state.form.name.trim())e.name=true;
+  if(!/^\d{6}$/.test(state.form.employeeId.trim()))e.employeeId=true;
+  if(!state.form.birthDate)e.birthDate=true;
+  if(!state.form.hireDate)e.hireDate=true;
+  if(!state.form.lastPromotionDate)e.lastPromotionDate=true;
+  if(!state.form.lastRaiseDate)e.lastRaiseDate=true;
+  state.formErrors=e;
+  return Object.keys(e).length===0;
+}
+
+// ══════════════════════════════════════
+//  RENDER HELPERS
+// ══════════════════════════════════════
+function saveBadgeHTML(){
+  const cfg={saving:{text:"جارِ الحفظ…",color:"#FF9800",bg:"#2a1e00",icon:"💾"},saved:{text:"محفوظ ✓",color:"#4CAF50",bg:"#0d2a0d",icon:"✅"},loaded:{text:"تم التحميل ✓",color:"#42A5F5",bg:"#0d1a2a",icon:"📂"},error:{text:"خطأ في الحفظ",color:"#F44336",bg:"#2a0000",icon:"⚠️"},idle:null}[state.storageStatus];
+  if(!cfg)return"";
+  return`<div class="save-badge" style="background:${cfg.bg};border:1px solid ${cfg.color}44;color:${cfg.color}"><span>${cfg.icon}</span><span>${cfg.text}</span></div>`;
+}
+
+function tabServiceHTML(){
+  const r=state.result;
+  if(!r)return`<div class="empty-state"><div class="empty-icon">📅</div><p>أدخل تاريخ التعيين للبدء</p></div>`;
+  const stageNum=parseInt(state.form.stage);
+  let countdownHTML="";
+  if(r.daysToNext>0){
+    countdownHTML=`<div class="countdown">
+      <span class="cd-num">${r.nextStageDuration.days}</span><span class="cd-unit">يوم</span>
+      <span class="cd-num">${r.nextStageDuration.months}</span><span class="cd-unit">شهر</span>
+      <span class="cd-num">${r.nextStageDuration.years}</span><span class="cd-unit">سنة</span>
+      <div class="cd-label">المتبقي للاستحقاق</div>
+    </div>`;
+  }else{
+    let overdueHTML="";
+    if(r.overdueEff>0){
+      const od=fmtDur(r.overdueEff);
+      overdueHTML=`<div class="overdue-box"><div style="font-size:11px;color:#888;margin-bottom:4px">مدة التجاوز عن الاستحقاق</div><div style="font-size:15px;font-weight:700;color:#F44336">${od.years>0?od.years+' سنة ':''} ${od.months>0?od.months+' شهر ':''} ${od.days} يوم</div></div>`;
+    }
+    countdownHTML=`<div class="eligible">✅ مستحق للعلاوة والترفيع الآن</div>${overdueHTML}`;
+  }
+  let reductionBadge="";
+  if(r.reductionDays>0){
+    reductionBadge=`<div class="reduction-badge"><span style="font-size:16px">⚡</span><span>تقليص <strong style="color:#FFD700">${Math.round(r.reductionDays/30)}</strong> شهر بفضل الشكر والتقدير</span></div>`;
+  }
+  // stage dots
+  let dots="";
+  for(let i=1;i<=11;i++){
+    let cls="stage-dot";
+    if(i<=stageNum)cls+=" active";
+    if(i===stageNum)cls+=" current";
+    dots+=`<div class="${cls}">${i}</div>`;
+  }
+  return`
+    <div class="big-card">
+      <div class="big-card-label">مدة الخدمة الفعلية</div>
+      <div class="big-card-value">${r.duration.days}<span class="unit"> يوم </span>${r.duration.months}<span class="unit"> شهر </span>${r.duration.years}<span class="unit"> سنة</span></div>
+      <div class="big-card-sub">${fmt(r.totalDays)} يوم إجمالي</div>
+    </div>
+    <div class="info-row">
+      <div class="info-box"><div class="info-label">تاريخ التعيين</div><div class="info-value">${fmtDateStr(state.form.hireDate)}</div></div>
+      <div class="info-box"><div class="info-label">سنوات الخدمة</div><div class="info-value">${r.totalYears.toFixed(1)}</div></div>
+    </div>
+    <div class="info-row">
+      <div class="info-box" style="flex:1;border:1px solid #FFD70044;background:#1a1500">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="info-label" style="color:#FFD700">📅 العلاوة السنوية القادمة</div>
+          <div style="font-size:11px;color:#FFD700;background:#2a2000;border-radius:6px;padding:2px 8px;border:1px solid #FFD70044">المرحلة القادمة: ${r.nextStageNum}</div>
+        </div>
+        <div class="info-value" style="color:#FFD700;font-size:16px">${fmtDate(r.annualRaiseDate)}</div>
+      </div>
+    </div>
+    <div class="promo-card">
+      <div class="promo-header"><span style="font-size:24px">🏆</span><div class="promo-title">استحقاق الترفيع</div></div>
+      <div class="promo-dates">
+        <div class="promo-date-box faded"><div class="promo-date-label">التاريخ الأصلي</div><div class="promo-date small">${fmtDate(r.nextStageDateOriginal)}</div></div>
+        <div class="promo-date-box effective"><div class="promo-date-label">بعد الشكر والتقدير 🎖</div><div class="promo-date">${fmtDate(r.nextStageDateEffective)}</div></div>
+      </div>
+      ${reductionBadge}
+      ${countdownHTML}
+      <div class="raise-row"><span class="raise-label">قيمة العلاوة السنوية</span><span class="raise-val">${fmt(r.annualRaise)} د.ع</span></div>
+    </div>
+    <div class="card">
+      <div class="section-title"><span>📊</span> مسار الدرجة الوظيفية</div>
+      <div class="progress-label"><span>الدرجة ${GRADES[state.form.grade]}</span><span>المرحلة ${state.form.stage} / 11</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${(stageNum/11)*100}%"></div></div>
+      <div class="stage-grid">${dots}</div>
+    </div>`;
+}
+
+function tabCommendHTML(){
+  const r=state.result;
+  let bigCard="";
+  if(r){
+    let typeSummary="";
+    state.commTypes.forEach(t=>{
+      typeSummary+=`<div style="text-align:center"><div style="font-size:20px">${t.icon}</div><div style="font-size:18px;font-weight:900;color:${t.color}">${r.commByType[t.id]||0}</div><div style="font-size:10px;color:#666">${t.label}</div></div>`;
+    });
+    bigCard=`<div class="commend-big">
+      <div class="big-card-label">إجمالي أثر الشكر والتقدير على الاستحقاق</div>
+      <div style="font-size:36px;font-weight:900;color:#FFD700;line-height:1">${Math.round(r.reductionDays/30)}<span style="font-size:18px;color:#FFD700"> شهر</span></div>
+      <div class="big-card-sub">تقليص من مدة الانتظار للعلاوة والترفيع</div>
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:12px">${typeSummary}</div>
+    </div>`;
+  }
+  let rows="";
+  if(state.commendations.length===0){
+    rows=`<div style="text-align:center;color:#444;padding:20px 0;font-size:13px">لا يوجد شكر وتقدير مضاف</div>`;
+  }else{
+    state.commendations.forEach((c,idx)=>{
+      const t=state.commTypes.find(x=>x.id===c.type)||state.commTypes[0];
+      const eff=getEffectiveDays(c);
+      let opts=state.commTypes.map(x=>`<option value="${x.id}" ${c.type===x.id?"selected":""}>${x.icon} ${x.label} (↓${Math.round(x.daysReduction/30)} شهر)</option>`).join("");
+      rows+=`<div class="comm-row" style="border-right:4px solid ${t.color}">
+        <div class="comm-header">
+          <span style="font-size:20px">${t.icon}</span>
+          <span style="font-size:12px;color:${t.color};font-weight:700">شكر وتقدير #${idx+1}</span>
+          <button class="del-btn" onclick="removeCommendation('${c.id}')">✕</button>
+        </div>
+        <div class="comm-fields">
+          <div class="field"><label>نوع الشكر والتقدير</label><select onchange="updateCommendation('${c.id}','type',this.value)">${opts}</select></div>
+          <div class="field"><label>تاريخ الشكر والتقدير</label><input type="date" value="${c.date}" onchange="updateCommendation('${c.id}','date',this.value)"/></div>
+        </div>
+        <div class="comm-effect"><span style="font-size:11px;color:#666">التأثير الفعلي</span><span style="font-size:13px;font-weight:900;color:${t.color}">↓ ${Math.round(eff/30)} شهر</span></div>
+      </div>`;
+    });
+  }
+  return`${bigCard}
+    <div class="card" style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title"><span>🎖</span> الشكر والتقدير الممنوحة</div>
+        <button class="add-btn" onclick="addCommendation()">+ إضافة</button>
+      </div>
+      ${rows}
+    </div>`;
+}
+
+function tabRetireHTML(){
+  if(!state.form.birthDate)return`<div class="empty-state"><div class="empty-icon">🎓</div><p>أدخل تاريخ الولادة لحساب تاريخ التقاعد</p></div>`;
+  const bd=new Date(state.form.birthDate);
+  const retDate=new Date(bd);retDate.setFullYear(bd.getFullYear()+60);
+  const today=new Date();
+  const daysLeft=Math.ceil((retDate-today)/86400000);
+  const isRetired=daysLeft<=0;
+  const retDur=fmtDur(Math.max(0,daysLeft));
+  const ageDur=fmtDur(Math.max(0,Math.floor((today-bd)/86400000)));
+  const hireDays=state.form.hireDate?Math.max(0,Math.floor((retDate-new Date(state.form.hireDate))/86400000)):null;
+  const hireDur=hireDays!==null?fmtDur(hireDays):null;
+
+  let countdownHTML="";
+  if(!isRetired){
+    let parts="";
+    if(retDur.years>0)parts+=`<div class="retire-box" style="border-color:#1565C044"><div style="font-size:28px;font-weight:900;color:#42A5F5">${retDur.years}</div><div style="font-size:12px;color:#888;margin-top:2px">سنة</div></div>`;
+    if(retDur.months>0)parts+=`<div class="retire-box" style="border-color:#1565C044"><div style="font-size:28px;font-weight:900;color:#42A5F5">${retDur.months}</div><div style="font-size:12px;color:#888;margin-top:2px">شهر</div></div>`;
+    parts+=`<div class="retire-box" style="border-color:#1565C044"><div style="font-size:28px;font-weight:900;color:#42A5F5">${retDur.days}</div><div style="font-size:12px;color:#888;margin-top:2px">يوم</div></div>`;
+    countdownHTML=`<div class="retire-countdown"><div style="font-size:13px;color:#888;text-align:center;margin-bottom:12px">المتبقي للتقاعد</div><div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">${parts}</div></div>`;
+  }else{
+    countdownHTML=`<div style="margin:10px 12px 0;text-align:center;background:#2a0000;border-radius:14px;padding:20px;color:#F44336;font-weight:700;font-size:16px;border:1px solid #F4433655">🔴 الموظف بلغ سن التقاعد</div>`;
+  }
+
+  let serviceHTML="";
+  if(hireDur){
+    serviceHTML=`<div class="service-duration">
+      <div style="font-size:13px;color:#8bc34a;font-weight:700;margin-bottom:12px">📅 مدة الخدمة من التعيين حتى التقاعد</div>
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">
+        <div style="text-align:center;background:#111;border-radius:10px;padding:12px 16px;min-width:70px;border:1px solid #2d4a2d"><div style="font-size:28px;font-weight:900;color:#4CAF50">${hireDur.years}</div><div style="font-size:12px;color:#888;margin-top:2px">سنة</div></div>
+        <div style="text-align:center;background:#111;border-radius:10px;padding:12px 16px;min-width:70px;border:1px solid #2d4a2d"><div style="font-size:28px;font-weight:900;color:#4CAF50">${hireDur.months}</div><div style="font-size:12px;color:#888;margin-top:2px">شهر</div></div>
+        <div style="text-align:center;background:#111;border-radius:10px;padding:12px 16px;min-width:70px;border:1px solid #2d4a2d"><div style="font-size:28px;font-weight:900;color:#4CAF50">${hireDur.days}</div><div style="font-size:12px;color:#888;margin-top:2px">يوم</div></div>
+      </div>
+    </div>`;
+  }
+
+  return`
+    <div class="retire-big" style="background:${isRetired?"linear-gradient(135deg,#1a0000,#2d0000)":"linear-gradient(135deg,#0d1a2a,#1a3a4a)"};border:1px solid ${isRetired?"#F44336":"#1565C0"}">
+      <div style="font-size:40px;margin-bottom:8px">🎓</div>
+      <div style="font-size:13px;color:${isRetired?"#F44336":"#42A5F5"};margin-bottom:8px">تاريخ التقاعد</div>
+      <div style="font-size:22px;font-weight:900;color:${isRetired?"#F44336":"#42A5F5"};margin-top:8px">${fmtDate(retDate)}</div>
+      <div style="font-size:12px;color:#666;margin-top:8px">عند بلوغ سن الستين</div>
+    </div>
+    <div class="info-row">
+      <div class="info-box"><div class="info-label">تاريخ الولادة</div><div class="info-value">${fmtDate(bd)}</div></div>
+      <div class="info-box"><div class="info-label">العمر الحالي</div><div class="info-value">${ageDur.years} سنة ${ageDur.months} شهر</div></div>
+    </div>
+    ${countdownHTML}
+    ${serviceHTML}`;
+}
+
+function tabRationHTML(){
+  if(!state.result)return`<div class="empty-state"><div class="empty-icon">🛒</div><p>أدخل البيانات واحتسب أولاً</p></div>`;
+  const r=state.result;
+  const base=r.baseSalary;
+  const dangerPct=DANGER_RATES[state.form.dangerLevel]||0;
+  const certPct=CERT_ALLOWANCES[state.form.certificate]||0;
+  const specialPct=30;
+  const combinedAmt=Math.round(base*(dangerPct+certPct+specialPct)/100);
+  const maritalAmt=r.allowances.marital;
+  const childrenAmt=r.allowances.children;
+  const locationAmt=r.allowances.location;
+  const total=base+combinedAmt+maritalAmt+childrenAmt+locationAmt;
+  const threshold=1500000;
+  const exceeded=total>=threshold;
+  const rows=[
+    {label:"الراتب الاسمي",val:base,color:"#e8e8e8"},
+    {label:"مخصصات الزوجية",val:maritalAmt,color:"#42A5F5"},
+    {label:"مخصصات الأطفال",val:childrenAmt,color:"#AB47BC"},
+    {label:"مخصصات موقع العمل",val:locationAmt,color:"#26C6DA"},
+  ].map(row=>`<div class="ration-row"><span style="font-size:11px;color:${row.color};flex:1;line-height:1.5">${row.label}</span><span style="font-size:13px;font-weight:700;color:${row.color};font-family:monospace;white-space:nowrap;margin-right:8px">${fmt(row.val)} <span style="font-size:10px;color:#666">د.ع</span></span></div>`).join("");
+  return`<div class="ration-card" style="background:${exceeded?"linear-gradient(135deg,#1a0000,#2d0000)":"linear-gradient(135deg,#0d1a0d,#1a2d1a)"};border:1px solid ${exceeded?"#F4433655":"#4CAF5055"}">
+    <div style="font-size:13px;color:${exceeded?"#F44336":"#4CAF50"};font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px"><span>🛒</span> إيقاف البطاقة التموينية</div>
+    ${rows}
+    <div class="ration-total" style="background:${exceeded?"#2a0000":"#0d2a0d"};border:1px solid ${exceeded?"#F44336":"#4CAF50"}">
+      <span style="font-size:14px;font-weight:700;color:${exceeded?"#F44336":"#4CAF50"}">المجموع</span>
+      <span style="font-size:16px;font-weight:900;color:${exceeded?"#F44336":"#4CAF50"};font-family:monospace">${fmt(total)} <span style="font-size:11px">د.ع</span></span>
+    </div>
+    <div class="ration-verdict" style="background:${exceeded?"#3a0000":"#0a2a0a"};border:1px solid ${exceeded?"#F4433655":"#4CAF5055"}">
+      <span style="font-size:13px;font-weight:700;color:${exceeded?"#F44336":"#4CAF50"}">${exceeded?"🔴 يستوجب إيقاف البطاقة التموينية":"🟢 لا يستوجب إيقاف البطاقة التموينية"}</span>
+      <div style="font-size:11px;color:#666;margin-top:4px">الحد المقرر: ${fmt(threshold)} د.ع</div>
+    </div>
+  </div>`;
+}
+
+function tabSalaryHTML(){
+  if(!state.form.name)return`<div class="empty-state"><div class="empty-icon">📜</div><p>أدخل اسم الموظف لعرض الشهادة</p></div>`;
+  if(!state.result)return`<div class="empty-state"><div class="empty-icon">📜</div><p>أدخل البيانات واحتسب أولاً</p></div>`;
+  const r=state.result;
+  let commNote="";
+  if(state.commendations.length>0){
+    commNote=`<br/><br/>وبتقدير صادق على <strong style="color:#FFD700">${state.commendations.length} شكر وتقدير</strong> أسهمت في تقليص مدة الاستحقاق بـ <strong style="color:#FFD700">${Math.round(r.reductionDays/30)} شهر</strong>`;
+  }
+  return`<div style="padding:12px 12px 0">
+    <div class="shukr-card">
+      <div class="shukr-title">🎖 شهادة شكر وتقدير</div>
+      <div class="shukr-body">
+        الموظف المخلص<br/>
+        <strong style="font-size:18px;color:#FFD700">${state.form.name}</strong><br/>
+        <span style="font-size:13px;color:#aaa">رقم الشركة: ${state.form.employeeId||"—"}</span>
+        <br/><br/>
+        على خدمته الوطنية الصادقة البالغة<br/>
+        <strong style="font-size:16px;color:#4CAF50">${r.duration.years} سنة و ${r.duration.months} شهر</strong><br/>
+        في الدرجة الوظيفية ${GRADES[state.form.grade]} / المرحلة ${state.form.stage}
+        ${commNote}
+        <br/><br/>
+        <span style="font-size:12px;color:#888">وتأمل له مزيداً من التقدم والازدهار في مسيرته المهنية</span>
+        <div style="font-size:48px;opacity:.08;margin-top:8px">🏛</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tabDeveloperHTML(){
+  return`<div class="dev-card">
+    <div class="dev-grad"></div>
+    <div style="font-size:56px;margin-bottom:14px">👨‍💻</div>
+    <div style="font-size:11px;color:#4CAF50;letter-spacing:3px;margin-bottom:8px;font-weight:600">المطوّر</div>
+    <div style="font-size:22px;font-weight:700;color:#e8e8e8;font-family:serif;line-height:1.6;margin-bottom:16px">المهندس محمد محي الدين عمر الجباري</div>
+    <div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#4CAF50,transparent);margin:0 auto 20px"></div>
+    <a href="tel:07701264441" class="dev-phone"><span>📞</span><span style="direction:ltr;letter-spacing:1.5px">07701264441</span></a>
+    <div class="storage-info">
+      <div style="font-size:12px;color:#4CAF50;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span>💾</span> نظام الحفظ الدائم</div>
+      <div style="font-size:11px;color:#666;line-height:2">يتم حفظ جميع بيانات الموظف والشكر والتقدير تلقائياً في ذاكرة المتصفح بعد كل تعديل (تأخير 0.8 ثانية)، وتُستعاد فور فتح التطبيق مجدداً.</div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11px;color:#4CAF5099"><span>🔑</span><span style="font-family:monospace;font-size:10px;color:#333">${STORAGE_KEY}</span></div>
+    </div>
+    <div style="font-size:11px;color:#333;margin-top:20px">© جميع الحقوق محفوظة</div>
+  </div>`;
+}
+
+// ══════════════════════════════════════
+//  MAIN RENDER
+// ══════════════════════════════════════
+function render(){
+  const f=state.form;
+  const fe=state.formErrors;
+  // grade options
+  let gradeOpts=Object.entries(GRADES).map(([k,v])=>`<option value="${k}" ${f.grade===k?"selected":""}>الدرجة ${v}</option>`).join("");
+  // stage options
+  let stageOpts=Array.from({length:11},(_,i)=>i+1).map(s=>`<option value="${s}" ${f.stage===String(s)?"selected":""}>المرحلة ${s}</option>`).join("");
+  // cert options
+  const certs=[["doctorate","دكتوراه (100%)"],["masters","ماجستير (75%)"],["high_diploma","دبلوم عالي (55%)"],["bachelor","بكالوريوس (45%)"],["diploma","دبلوم (35%)"],["preparatory","إعدادية (25%)"]];
+  let certOpts=certs.map(([v,l])=>`<option value="${v}" ${f.certificate===v?"selected":""}>${l}</option>`).join("");
+  // tabs
+  let tabBtns=TABS.map(t=>`<button class="tab-btn ${state.tab===t.id?"active":""}" onclick="setTab('${t.id}')"><span class="tab-icon">${t.icon}</span><span class="tab-label">${t.label}</span></button>`).join("");
+  // tab content
+  let tabContent="";
+  if(state.tab==="service") tabContent=tabServiceHTML();
+  else if(state.tab==="commend") tabContent=tabCommendHTML();
+  else if(state.tab==="retire") tabContent=tabRetireHTML();
+  else if(state.tab==="ration") tabContent=tabRationHTML();
+  else if(state.tab==="salary") tabContent=tabSalaryHTML();
+  else if(state.tab==="developer") tabContent=tabDeveloperHTML();
+
+  // clear confirm
+  let clearHTML=state.showClearConfirm
+    ?`<div class="clear-confirm"><span style="font-size:11px;color:#F44336">هل أنت متأكد؟</span><button class="confirm-yes" onclick="clearData()">نعم، مسح</button><button class="confirm-no" onclick="setClearConfirm(false)">إلغاء</button></div>`
+    :`<button class="clear-btn" onclick="setClearConfirm(true)">🗑 مسح البيانات</button>`;
+
+  let formErrorMsg=Object.values(fe).some(Boolean)?`<div class="form-error-msg">⚠️ يرجى تعبئة جميع الحقول الإلزامية المحددة بـ *</div>`:"";
+  let pdfBar=state.result?`<div class="pdf-bar no-print"><button class="pdf-btn" onclick="window.print()"><span style="font-size:20px">📄</span><span>تصدير PDF / طباعة</span></button></div>`:"";
+
+  document.getElementById("app").innerHTML=`
+    <div>
+      <!-- USER BAR -->
+      <div class="user-bar" id="user-bar">
+        <span style="font-size:16px">👤</span>
+        <span class="user-email">${window._currentUser ? window._currentUser.email : ''}</span>
+        <button class="logout-btn" onclick="doLogout()">خروج 🚪</button>
+      </div>
+      <!-- HEADER -->
+      <div class="header">
+        ${saveBadgeHTML()}
+        <div class="header-content">
+          <div style="font-size:34px">🏛</div>
+          <div class="app-title">حاسبة استحقاقات</div>
+          <div class="app-subtitle">شركة نفط الشمال</div>
+          ${clearHTML}
+        </div>
+      </div>
+
+      <!-- FORM -->
+      <div class="card">
+        <div class="section-title"><span>👤</span> بيانات الموظف</div>
+        <div class="row">
+          <div class="field"><label>الاسم <span style="color:#f55">*</span>${fe.name?'<span style="color:#f55;font-size:10px;margin-right:4px">مطلوب</span>':''}</label><input class="${fe.name?"error":""}" value="${escHtml(f.name)}" oninput="updateForm('name',this.value)" placeholder="الاسم الثلاثي"/></div>
+          <div class="field"><label>رقم الشركة <span style="color:#f55">*</span>${fe.employeeId?'<span style="color:#f55;font-size:10px;margin-right:4px">6 أرقام</span>':''}</label><input class="${fe.employeeId?"error":""}" value="${escHtml(f.employeeId)}" oninput="updateFormId(this)" placeholder="XXXXXX" maxlength="6" inputmode="numeric"/></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>تاريخ الولادة <span style="color:#f55">*</span>${fe.birthDate?'<span style="color:#f55;font-size:10px"> مطلوب</span>':''}</label><input type="date" class="${fe.birthDate?"error":""}" value="${f.birthDate}" onchange="updateForm('birthDate',this.value)"/></div>
+          <div class="field"><label>تاريخ التعيين <span style="color:#f55">*</span>${fe.hireDate?'<span style="color:#f55;font-size:10px"> مطلوب</span>':''}</label><input type="date" class="${fe.hireDate?"error":""}" value="${f.hireDate}" onchange="updateForm('hireDate',this.value)"/></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>تاريخ آخر ترفيع <span style="color:#f55">*</span>${fe.lastPromotionDate?'<span style="color:#f55;font-size:10px"> مطلوب</span>':''}</label><input type="date" class="${fe.lastPromotionDate?"error":""}" value="${f.lastPromotionDate}" onchange="updateForm('lastPromotionDate',this.value)"/></div>
+          <div class="field"><label>تاريخ آخر علاوة <span style="color:#f55">*</span>${fe.lastRaiseDate?'<span style="color:#f55;font-size:10px"> مطلوب</span>':''}</label><input type="date" class="${fe.lastRaiseDate?"error":""}" value="${f.lastRaiseDate||""}" onchange="updateForm('lastRaiseDate',this.value)"/></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>الدرجة الوظيفية</label><select onchange="updateForm('grade',this.value)">${gradeOpts}</select></div>
+          <div class="field"><label>المرحلة (الراتبة)</label><select onchange="updateForm('stage',this.value)">${stageOpts}</select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>الشهادة</label><select onchange="updateForm('certificate',this.value)">${certOpts}</select></div>
+          <div class="field"><label>درجة الخطورة</label><select onchange="updateForm('dangerLevel',this.value)"><option value="high" ${f.dangerLevel==="high"?"selected":""}>عالية (30%)</option><option value="medium" ${f.dangerLevel==="medium"?"selected":""}>متوسطة (26%)</option></select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>المنصب الإداري</label><select onchange="updateForm('position',this.value)">
+            <option value="normal" ${f.position==="normal"?"selected":""}>موظف عادي</option>
+            <option value="section_chief" ${f.position==="section_chief"?"selected":""}>رئيس شعبة (15%)</option>
+            <option value="dept_director" ${f.position==="dept_director"?"selected":""}>مدير قسم (20%)</option>
+            <option value="board_director" ${f.position==="board_director"?"selected":""}>مدير هيأة (25%)</option>
+            <option value="deputy_dg" ${f.position==="deputy_dg"?"selected":""}>معاون مدير عام (30%)</option>
+          </select></div>
+          <div class="field"><label>موقع العمل</label><select onchange="updateForm('workLocation',this.value)"><option value="60" ${f.workLocation==="60"?"selected":""}>60,000 د.ع</option><option value="40" ${f.workLocation==="40"?"selected":""}>40,000 د.ع</option></select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>الحالة الزوجية</label><select onchange="updateForm('maritalStatus',this.value)"><option value="single" ${f.maritalStatus==="single"?"selected":""}>أعزب / مطلق / أرمل</option><option value="married" ${f.maritalStatus==="married"?"selected":""}>متزوج</option></select></div>
+          <div class="field"><label>عدد الأطفال (حتى 4)</label><select onchange="updateForm('children',this.value)">${[0,1,2,3,4].map(n=>`<option value="${n}" ${f.children===String(n)?"selected":""}>${n} أطفال</option>`).join("")}</select></div>
+        </div>
+        <button class="calc-btn" onclick="onCalculate()">🔢 احتساب الاستحقاقات</button>
+        ${formErrorMsg}
+      </div>
+
+      <!-- TABS -->
+      <div class="tab-bar">${tabBtns}</div>
+      <div class="tab-content">${tabContent}</div>
+
+      ${pdfBar}
+    </div>`;
+}
+
+function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+// ══════════════════════════════════════
+//  EVENT HANDLERS (global)
+// ══════════════════════════════════════
+function setTab(t){state.tab=t;render();}
+function setClearConfirm(v){state.showClearConfirm=v;render();}
+function updateForm(k,v){state.form={...state.form,[k]:v};state.formErrors={...state.formErrors,[k]:false};calculate();scheduleSave();render();}
+function updateFormId(el){const v=el.value.replace(/\D/g,"").slice(0,6);state.form={...state.form,employeeId:v};el.value=v;state.formErrors={...state.formErrors,employeeId:false};calculate();scheduleSave();}
+function onCalculate(){if(validateForm()){calculate();}render();}
+function addCommendation(){state.commendations=[...state.commendations,{id:String(Date.now()),type:state.commTypes[0].id,customDays:null,date:"",note:""}];calculate();scheduleSave();render();}
+function removeCommendation(id){state.commendations=state.commendations.filter(x=>x.id!==id);calculate();scheduleSave();render();}
+function updateCommendation(id,k,v){state.commendations=state.commendations.map(x=>x.id===id?{...x,[k]:v}:x);calculate();scheduleSave();render();}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+// تشغيل بعد تحميل الصفحة كاملاً
+window.addEventListener('load', function() {
+  loadSaved();
+  calculate();
+  // لا نستدعي render هنا — يتولى نظام المصادقة إظهار الشاشة الصحيحة
+});
+</script>
+<script>
+// ══════════════════════════════════════
+//  AUTH — Firebase Authentication + Email OTP
+// ══════════════════════════════════════
+
+// ── إعداد Firebase ──
+const _FB_CONFIG = {
+  apiKey:            "AIzaSyCe2KPpTglDlID027o_ZkySi8yrw0xv1rw",
+  authDomain:        "noc-calculator-ff405.firebaseapp.com",
+  projectId:         "noc-calculator-ff405",
+  storageBucket:     "noc-calculator-ff405.firebasestorage.app",
+  messagingSenderId: "395084955704",
+  appId:             "1:395084955704:web:2dac903b2f143a55a9e6cd",
+  measurementId:     "G-NWPDW8V59E"
+};
+
+let _fbApp, _fbAuth;
+function _initFirebase() {
+  if (_fbApp) return;
+  try {
+    _fbApp  = firebase.initializeApp(_FB_CONFIG);
+    _fbAuth = firebase.auth();
+    // مراقبة حالة تسجيل الدخول
+    _fbAuth.onAuthStateChanged(user => {
+      if (user) {
+        window._currentUser = { email: user.email || user.displayName || "مستخدم" };
+        _showApp();
+      }
+    });
+  } catch(e) { console.error("Firebase init error:", e); }
+}
+
+// ── OTP في الذاكرة (6 أرقام، صالح 10 دقائق) ──
+let _otpStore = null; // { code, email, expires, purpose }
+let _resendTimer = null;
+
+function _generateOTP() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+// ── إعداد EmailJS لإرسال OTP ──
+const _EJS_SERVICE  = "service_k2gccmc";
+const _EJS_TEMPLATE = "template_j4ddnyd";
+const _EJS_PUBLIC   = "ZhLpGVJjguqWF-uKE";
+
+async function _sendOTP(email, purpose) {
+  const code = _generateOTP();
+  _otpStore = { code, email, expires: Date.now() + 10 * 60 * 1000, purpose };
+  if (_EJS_PUBLIC.startsWith("YOUR_")) {
+    console.info("OTP (test):", code);
+    return code;
+  }
+  try {
+    emailjs.init({ publicKey: _EJS_PUBLIC });
+    await emailjs.send(_EJS_SERVICE, _EJS_TEMPLATE, {
+      to_email: email,
+      otp_code: code,
+      app_name: "حاسبة استحقاقات — شركة نفط الشمال",
+      expires_in: "10 دقائق"
+    });
+  } catch(e) { console.warn("EmailJS error:", e); }
+  return code;
+}
+
+// ── عرض شاشة OTP ──
+function _showOTPScreen(email) {
+  document.getElementById("auth-main").style.display = "none";
+  document.getElementById("auth-otp").style.display  = "block";
+  document.getElementById("otp-email-label").textContent = email;
+  document.getElementById("otp-input").value = "";
+  document.getElementById("auth-msg").className = "auth-msg";
+  document.getElementById("otp-input").focus();
+  _startResendTimer(60);
+}
+
+function backToLogin() {
+  _otpStore = null;
+  document.getElementById("auth-otp").style.display  = "none";
+  document.getElementById("auth-main").style.display = "block";
+  document.getElementById("auth-msg").className = "auth-msg";
+  if (_resendTimer) clearInterval(_resendTimer);
+}
+
+// ── مؤقت إعادة الإرسال ──
+function _startResendTimer(seconds) {
+  const btn   = document.getElementById("resend-btn");
+  const timer = document.getElementById("resend-timer");
+  btn.style.display   = "none";
+  timer.style.display = "inline";
+  let remaining = seconds;
+  if (_resendTimer) clearInterval(_resendTimer);
+  _resendTimer = setInterval(() => {
+    remaining--;
+    timer.textContent = `إعادة الإرسال بعد ${remaining}s`;
+    if (remaining <= 0) {
+      clearInterval(_resendTimer);
+      timer.style.display = "none";
+      btn.style.display   = "inline";
+    }
+  }, 1000);
+}
+
+// ── التحقق من OTP ──
+window.verifyOTP = async function() {
+  const input = document.getElementById("otp-input").value.trim();
+  const btn   = document.getElementById("otp-btn");
+  if (input.length !== 6) { showAuthMsg("أدخل الكود المكون من 6 أرقام", "error"); return; }
+  if (!_otpStore)          { showAuthMsg("انتهت الجلسة، أعد المحاولة", "error"); backToLogin(); return; }
+  if (Date.now() > _otpStore.expires) { showAuthMsg("انتهت صلاحية الكود (10 دقائق)، أعد الإرسال", "error"); return; }
+  if (input !== _otpStore.code)       { showAuthMsg("الكود غير صحيح، تحقق من بريدك", "error"); return; }
+
+  btn.disabled = true; btn.textContent = "جارِ التحقق…";
+  try {
+    const email   = _otpStore.email;
+    const purpose = _otpStore.purpose;
+    _otpStore = null;
+
+    if (purpose === "login") {
+      // تسجيل دخول Firebase بدون كلمة مرور (anonymous then link) — نستخدم custom token approach
+      // نعتمد على الجلسة المحلية بعد التحقق من OTP
+      window._currentUser = { email };
+      localStorage.setItem("noc_fb_session", JSON.stringify({ email, ts: Date.now() }));
+      showAuthMsg("مرحباً ✅", "success");
+      setTimeout(() => _showApp(), 600);
+
+    } else if (purpose === "register") {
+      const pass = sessionStorage.getItem("_reg_pass");
+      sessionStorage.removeItem("_reg_pass");
+      if (!pass) { showAuthMsg("انتهت الجلسة، أعد التسجيل", "error"); backToLogin(); return; }
+      await _fbAuth.createUserWithEmailAndPassword(email, pass);
+      showAuthMsg("تم إنشاء الحساب بنجاح ✅", "success");
+
+    } else if (purpose === "reset") {
+      await _fbAuth.sendPasswordResetEmail(email);
+      showAuthMsg("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك ✅", "success");
+      setTimeout(() => backToLogin(), 2000);
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "✅ تحقق";
+    showAuthMsg(_fbErrMsg(e), "error");
+  }
+};
+
+// ── إعادة إرسال OTP ──
+window.resendOTP = async function() {
+  if (!_otpStore) { backToLogin(); return; }
+  const email   = _otpStore.email;
+  const purpose = _otpStore.purpose;
+  showAuthMsg("جارِ إعادة الإرسال…", "success");
+  await _sendOTP(email, purpose);
+  showAuthMsg("تم إرسال كود جديد إلى بريدك 📧", "success");
+  _startResendTimer(60);
+};
+
+// ── تسجيل الدخول ──
+window.doLogin = async function() {
+  const email = document.getElementById("login-email").value.trim().toLowerCase();
+  const pass  = document.getElementById("login-pass").value;
+  const btn   = document.getElementById("login-btn");
+  if (!email || !pass) { showAuthMsg("يرجى إدخال البريد وكلمة المرور", "error"); return; }
+  btn.disabled = true; btn.textContent = "جارِ التحقق…";
+  try {
+    await _fbAuth.signInWithEmailAndPassword(email, pass);
+    // بعد نجاح كلمة المرور → إرسال OTP
+    await _sendOTP(email, "login");
+    showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
+    btn.disabled = false; btn.textContent = "🔐 دخول";
+    _showOTPScreen(email);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "🔐 دخول";
+    showAuthMsg(_fbErrMsg(e), "error");
+  }
+};
+
+// ── إنشاء حساب ──
+window.doRegister = async function() {
+  const email = document.getElementById("reg-email").value.trim().toLowerCase();
+  const pass  = document.getElementById("reg-pass").value;
+  const pass2 = document.getElementById("reg-pass2").value;
+  const btn   = document.getElementById("reg-btn");
+  if (!email || !pass)  { showAuthMsg("يرجى إدخال البريد وكلمة المرور", "error"); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAuthMsg("البريد الإلكتروني غير صالح", "error"); return; }
+  if (pass !== pass2)   { showAuthMsg("كلمتا المرور غير متطابقتين", "error"); return; }
+  if (pass.length < 6)  { showAuthMsg("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "error"); return; }
+  btn.disabled = true; btn.textContent = "جارِ الإنشاء…";
+  try {
+    // نتحقق إذا كان البريد مسجلاً مسبقاً
+    const methods = await _fbAuth.fetchSignInMethodsForEmail(email);
+    if (methods.length > 0) {
+      showAuthMsg("هذا البريد مسجل مسبقاً", "error");
+      btn.disabled = false; btn.textContent = "✅ إنشاء الحساب"; return;
+    }
+    // حفظ كلمة المرور مؤقتاً لاستخدامها بعد OTP
+    sessionStorage.setItem("_reg_pass", pass);
+    await _sendOTP(email, "register");
+    showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
+    btn.disabled = false; btn.textContent = "✅ إنشاء الحساب";
+    _showOTPScreen(email);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "✅ إنشاء الحساب";
+    showAuthMsg(_fbErrMsg(e), "error");
+  }
+};
+
+// ── نسيت كلمة المرور ──
+window.doReset = async function() {
+  const email = document.getElementById("login-email").value.trim().toLowerCase();
+  if (!email) { showAuthMsg("أدخل بريدك الإلكتروني أولاً", "error"); return; }
+  try {
+    const methods = await _fbAuth.fetchSignInMethodsForEmail(email);
+    if (methods.length === 0) { showAuthMsg("البريد الإلكتروني غير مسجل", "error"); return; }
+    await _sendOTP(email, "reset");
+    showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
+    _showOTPScreen(email);
+  } catch(e) {
+    showAuthMsg(_fbErrMsg(e), "error");
+  }
+};
+
+// ── تسجيل الدخول بـ Google ──
+window.doGoogleLogin = async function() {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await _fbAuth.signInWithPopup(provider);
+    // onAuthStateChanged يتولى الباقي
+  } catch(e) {
+    showAuthMsg(_fbErrMsg(e), "error");
+  }
+};
+
+// ── تسجيل الخروج ──
+window.doLogout = async function() {
+  try { await _fbAuth.signOut(); } catch {}
+  localStorage.removeItem("noc_fb_session");
+  window._currentUser = null;
+  _showAuth();
+};
+
+// ── رسائل الخطأ بالعربية ──
+function _fbErrMsg(e) {
+  const map = {
+    "auth/user-not-found":       "البريد الإلكتروني غير مسجل",
+    "auth/wrong-password":       "كلمة المرور غير صحيحة",
+    "auth/invalid-credential":   "البريد أو كلمة المرور غير صحيحة",
+    "auth/email-already-in-use": "هذا البريد مسجل مسبقاً",
+    "auth/invalid-email":        "البريد الإلكتروني غير صالح",
+    "auth/too-many-requests":    "محاولات كثيرة، انتظر قليلاً",
+    "auth/network-request-failed":"تعذّر الاتصال، تحقق من الإنترنت",
+    "auth/popup-closed-by-user": "تم إغلاق نافذة Google",
+  };
+  return map[e.code] || (e.message || "حدث خطأ غير متوقع");
+}
+
+// ── عرض / إخفاء الشاشات ──
+function _showApp() {
+  document.getElementById("auth-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  const bar = document.getElementById("user-bar");
+  if (bar) bar.querySelector(".user-email").textContent = window._currentUser?.email || "مستخدم";
+  if (typeof render === "function") render();
+}
+function _showAuth() {
+  document.getElementById("auth-screen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  backToLogin();
+}
+
+// ── فحص الجلسة عند التحميل ──
+function _checkAuth() {
+  _initFirebase();
+  // Firebase onAuthStateChanged يتحقق تلقائياً
+  // لكن نضيف timeout للتأكد
+  setTimeout(() => {
+    if (!window._currentUser) {
+      const s = JSON.parse(localStorage.getItem("noc_fb_session") || "null");
+      if (s && (Date.now() - s.ts) < 30 * 24 * 3600 * 1000) {
+        window._currentUser = { email: s.email };
+        _showApp();
+      } else {
+        _showAuth();
+      }
+    }
+  }, 1500);
+}
+
+// ── تبديل تبويب تسجيل الدخول / التسجيل ──
+window.switchAuthTab = function(tab) {
+  document.getElementById("login-form").style.display    = tab === "login"    ? "block" : "none";
+  document.getElementById("register-form").style.display = tab === "register" ? "block" : "none";
+  document.getElementById("tab-login").className    = "auth-tab" + (tab === "login"    ? " active" : "");
+  document.getElementById("tab-register").className = "auth-tab" + (tab === "register" ? " active" : "");
+  document.getElementById("auth-msg").className = "auth-msg";
+};
+
+function showAuthMsg(text, type) {
+  const el = document.getElementById("auth-msg");
+  el.textContent = text;
+  el.className = "auth-msg " + type;
+}
+
+// ── تشغيل فحص الجلسة ──
+window.addEventListener("load", function() {
+  _checkAuth();
+});
+</script>
+
+</body>
