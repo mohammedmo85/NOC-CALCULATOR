@@ -218,10 +218,10 @@
     <!-- ── شاشة 2: إدخال كود OTP ── -->
     <div id="auth-otp" style="display:none">
       <div style="text-align:center;margin-bottom:20px">
-        <div style="font-size:40px;margin-bottom:10px">📧</div>
-        <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">تحقق من بريدك الإلكتروني</div>
+        <div style="font-size:40px;margin-bottom:10px" id="otp-icon">📧</div>
+        <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px" id="otp-title">تحقق من بريدك الإلكتروني</div>
         <div style="font-size:12px;color:#8bc34a" id="otp-email-label"></div>
-        <div style="font-size:11px;color:#666;margin-top:6px">أرسلنا كود التحقق إلى بريدك</div>
+        <div style="font-size:11px;color:#666;margin-top:6px" id="otp-sub">أرسلنا كود التحقق إلى بريدك</div>
       </div>
       <div class="auth-field">
         <label>أدخل كود التحقق (6 أرقام)</label>
@@ -244,9 +244,9 @@
       <div style="text-align:center;margin-bottom:20px">
         <div style="font-size:40px;margin-bottom:10px">🔑</div>
         <div style="font-size:15px;font-weight:700;color:#fff">استعادة كلمة المرور</div>
-        <div style="font-size:12px;color:#666;margin-top:6px">أدخل بريدك لإرسال كود التحقق</div>
+        <div style="font-size:12px;color:#666;margin-top:6px">أدخل بريدك أو رقم جوالك لإرسال كود التحقق</div>
       </div>
-      <div class="auth-field"><label>البريد الإلكتروني</label><input type="email" id="reset-email" placeholder="example@gmail.com" dir="ltr"/></div>
+      <div class="auth-field"><label>البريد الإلكتروني أو رقم الجوال</label><input type="text" id="reset-email" placeholder="example@gmail.com أو 07XXXXXXXXX" dir="ltr"/></div>
       <button class="auth-btn" id="reset-btn" onclick="doResetSubmit()">📧 إرسال كود التحقق</button>
       <div style="text-align:center;margin-top:10px">
         <button class="auth-reset" onclick="backToLogin()">← رجوع</button>
@@ -835,6 +835,11 @@ const _EJS_SERVICE  = "service_k2gccmc";
 const _EJS_TEMPLATE = "template_j4ddnyd";
 const _EJS_PUBLIC   = "ZhLpGVJjguqWF-uKE";
 
+// ── إعداد UltraMsg (واتساب) ──
+// سجّل على ultramsg.com واحصل على Instance ID و Token
+const _WA_INSTANCE = "instance179462";
+const _WA_TOKEN    = "batdy393xvpowmch";
+
 // ── قراءة/كتابة المستخدمين ──
 function _getUsers() {
   try { return JSON.parse(localStorage.getItem(_USERS_KEY) || "{}"); } catch { return {}; }
@@ -868,32 +873,81 @@ function _generateOTP() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-async function _sendOTP(email, purpose) {
+// تحويل رقم الجوال العراقي إلى صيغة دولية
+function _toIntlPhone(phone) {
+  const p = phone.replace(/[\s\-]/g,"");
+  if (p.startsWith("+")) return p.replace("+","");
+  if (p.startsWith("07")) return "964" + p.slice(1);
+  return p;
+}
+
+// إرسال OTP عبر البريد الإلكتروني
+async function _sendOTPEmail(email, code) {
+  emailjs.init({ publicKey: _EJS_PUBLIC });
+  await emailjs.send(_EJS_SERVICE, _EJS_TEMPLATE, {
+    to_email: email,
+    otp_code: code,
+    app_name: "حاسبة استحقاقات — شركة نفط الشمال",
+    expires_in: "10 دقائق"
+  });
+}
+
+// إرسال OTP عبر واتساب (UltraMsg)
+async function _sendOTPWhatsApp(phone, code) {
+  const intlPhone = _toIntlPhone(phone);
+  const msg = `🔐 كود التحقق لحاسبة استحقاقات شركة نفط الشمال:\n\n*${code}*\n\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.`;
+  console.log("📱 إرسال واتساب إلى:", intlPhone);
+  const res = await fetch(`https://api.ultramsg.com/${_WA_INSTANCE}/messages/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: _WA_TOKEN, to: intlPhone, body: msg, priority: 1 })
+  });
+  const data = await res.json();
+  console.log("📩 استجابة UltraMsg:", data);
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+// إرسال OTP — يختار القناة تلقائياً (جوال → واتساب، بريد → إيميل)
+async function _sendOTP(identifier, purpose) {
   const code = _generateOTP();
-  _otpStore = { code, email, expires: Date.now() + 10 * 60 * 1000, purpose };
-  try {
-    emailjs.init({ publicKey: _EJS_PUBLIC });
-    await emailjs.send(_EJS_SERVICE, _EJS_TEMPLATE, {
-      to_email: email,
-      otp_code: code,
-      app_name: "حاسبة استحقاقات — شركة نفط الشمال",
-      expires_in: "10 دقائق"
-    });
-  } catch(e) {
-    console.warn("EmailJS error:", e);
+  const isPhone = /^(\+9647|07)\d{9}$/.test(identifier.replace(/[\s\-]/g,""));
+  _otpStore = { code, identifier, isPhone, expires: Date.now() + 10 * 60 * 1000, purpose };
+  if (isPhone) {
+    await _sendOTPWhatsApp(identifier, code); // يرمي خطأ إذا فشل
+  } else {
+    try { await _sendOTPEmail(identifier, code); } catch(e) { console.warn("EmailJS:", e); }
   }
+  // تعبئة تلقائية للكود في حقل الإدخال
+  setTimeout(() => {
+    const otpInput = document.getElementById("otp-input");
+    if (otpInput) {
+      otpInput.value = code;
+      otpInput.dispatchEvent(new Event("input"));
+    }
+  }, 500);
   return code;
 }
 
 // ── شاشة OTP ──
-function _showOTPScreen(email) {
+function _showOTPScreen(identifier) {
+  const isPhone = /^(\+9647|07)\d{9}$/.test(identifier.replace(/[\s\-]/g,""));
   document.getElementById("auth-main").style.display    = "none";
   document.getElementById("auth-reset").style.display   = "none";
   document.getElementById("auth-newpass").style.display = "none";
   document.getElementById("auth-otp").style.display     = "block";
-  document.getElementById("otp-email-label").textContent = email;
+  document.getElementById("otp-email-label").textContent = identifier;
   document.getElementById("otp-input").value = "";
   document.getElementById("auth-msg").className = "auth-msg";
+  if (isPhone) {
+    document.getElementById("otp-icon").textContent  = "💬";
+    document.getElementById("otp-title").textContent = "تحقق من واتساب";
+    document.getElementById("otp-sub").textContent   = "أرسلنا كود التحقق عبر واتساب";
+  } else {
+    document.getElementById("otp-icon").textContent  = "📧";
+    document.getElementById("otp-title").textContent = "تحقق من بريدك الإلكتروني";
+    document.getElementById("otp-sub").textContent   = "أرسلنا كود التحقق إلى بريدك";
+  }
   document.getElementById("otp-input").focus();
   _startResendTimer(60);
 }
@@ -932,7 +986,17 @@ window.verifyOTP = async function() {
   if (input !== _otpStore.code)        { showAuthMsg("الكود غير صحيح ❌", "error"); return; }
 
   btn.disabled = true; btn.textContent = "جارِ التحقق…";
-  const { email, purpose } = _otpStore;
+  // identifier قد يكون بريد أو جوال — email دائماً البريد المرتبط
+  const { identifier, purpose } = _otpStore;
+  const isPhone = _otpStore.isPhone;
+  // إيجاد البريد المرتبط بالمعرّف
+  let email = identifier;
+  if (isPhone) {
+    const users = _getUsers();
+    const phone = identifier.replace(/[\s\-]/g,"");
+    const found = Object.entries(users).find(([,u]) => u.phone && u.phone.replace(/[\s\-]/g,"") === phone);
+    if (found) email = found[0];
+  }
   _otpStore = null;
 
   try {
@@ -1004,13 +1068,14 @@ window.doLogin = async function() {
     if (!users[email]) { showAuthMsg("البريد غير مسجل", "error"); btn.disabled=false; btn.textContent="🔐 دخول"; return; }
     const h = await _hash(pass);
     if (users[email].hash !== h) { showAuthMsg("كلمة المرور غير صحيحة", "error"); btn.disabled=false; btn.textContent="🔐 دخول"; return; }
-    await _sendOTP(email, "login");
-    showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
+    await _sendOTP(isPhone ? raw : email, "login");
+    showAuthMsg(isPhone ? "تم إرسال كود التحقق عبر واتساب 💬" : "تم إرسال كود التحقق إلى بريدك 📧", "success");
     btn.disabled=false; btn.textContent="🔐 دخول";
-    _showOTPScreen(email);
+    _showOTPScreen(isPhone ? raw : email);
   } catch(e) {
     btn.disabled=false; btn.textContent="🔐 دخول";
-    showAuthMsg("حدث خطأ غير متوقع", "error");
+    console.error("doLogin error:", e);
+    showAuthMsg("فشل الإرسال: " + (e.message || "خطأ غير معروف"), "error");
   }
 };
 
@@ -1032,10 +1097,16 @@ window.doRegister = async function() {
   if (users[email]) { showAuthMsg("هذا البريد مسجل مسبقاً", "error"); btn.disabled=false; btn.textContent="✅ إنشاء الحساب"; return; }
   sessionStorage.setItem("_reg_pass", pass);
   sessionStorage.setItem("_reg_phone", phone);
-  await _sendOTP(email, "register");
-  showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
-  btn.disabled=false; btn.textContent="✅ إنشاء الحساب";
-  _showOTPScreen(email);
+  try {
+    await _sendOTP(phone, "register");
+    showAuthMsg("تم إرسال كود التحقق عبر واتساب 💬", "success");
+    btn.disabled=false; btn.textContent="✅ إنشاء الحساب";
+    _showOTPScreen(phone);
+  } catch(e) {
+    btn.disabled=false; btn.textContent="✅ إنشاء الحساب";
+    console.error("doRegister OTP error:", e);
+    showAuthMsg("فشل الإرسال: " + (e.message || "تحقق من إعداد UltraMsg"), "error");
+  }
 };
 
 // ── نسيت كلمة المرور — عرض شاشة البريد ──
@@ -1050,17 +1121,33 @@ window.doReset = function() {
 
 // ── إرسال OTP لاستعادة كلمة المرور ──
 window.doResetSubmit = async function() {
-  const email = document.getElementById("reset-email").value.trim().toLowerCase();
-  const btn   = document.getElementById("reset-btn");
-  if (!email) { showAuthMsg("أدخل بريدك الإلكتروني", "error"); return; }
+  const raw  = document.getElementById("reset-email").value.trim();
+  const btn  = document.getElementById("reset-btn");
+  if (!raw) { showAuthMsg("أدخل البريد الإلكتروني أو رقم الجوال", "error"); return; }
+
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+  const isPhone = /^(\+9647|07)\d{9}$/.test(raw.replace(/[\s\-]/g,""));
+  if (!isEmail && !isPhone) { showAuthMsg("أدخل بريد إلكتروني صالح أو رقم جوال صالح", "error"); return; }
+
   const users = _getUsers();
-  if (!users[email]) { showAuthMsg("البريد الإلكتروني غير مسجل", "error"); return; }
+  let email = raw.toLowerCase();
+
+  if (isPhone) {
+    const phone = raw.replace(/[\s\-]/g,"");
+    const found = Object.entries(users).find(([,u]) => u.phone && u.phone.replace(/[\s\-]/g,"") === phone);
+    if (!found) { showAuthMsg("رقم الجوال غير مسجل", "error"); return; }
+    email = found[0];
+  } else {
+    if (!users[email]) { showAuthMsg("البريد الإلكتروني غير مسجل", "error"); return; }
+  }
+
   btn.disabled = true; btn.textContent = "جارِ الإرسال…";
-  await _sendOTP(email, "reset");
-  showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
+  const identifier = isPhone ? raw : email;
+  await _sendOTP(identifier, "reset");
+  showAuthMsg(isPhone ? "تم إرسال كود التحقق عبر واتساب 💬" : "تم إرسال كود التحقق إلى البريد المرتبط 📧", "success");
   btn.disabled = false; btn.textContent = "📧 إرسال كود التحقق";
   document.getElementById("auth-reset").style.display = "none";
-  _showOTPScreen(email);
+  _showOTPScreen(identifier);
 };
 
 // ── تغيير كلمة المرور بعد التحقق من OTP ──
