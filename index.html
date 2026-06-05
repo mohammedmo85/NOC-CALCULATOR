@@ -4,6 +4,15 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>حاسبة استحقاقات - شركة نفط الشمال</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#1b5e20"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="NOC Calculator"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<meta name="description" content="حاسبة استحقاقات موظفي شركة نفط الشمال"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Noto Sans Arabic','Segoe UI',sans-serif;direction:rtl;background:#0d0d0d;min-height:100vh;color:#e8e8e8}
@@ -169,8 +178,6 @@
   .commend-big{margin:12px 12px 0;background:linear-gradient(135deg,#1a1200,#2d2000);border-radius:20px;padding:24px 20px;text-align:center;border:1px solid #2d4a2d}
 </style>
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
@@ -193,10 +200,7 @@
         <div class="auth-field"><label>كلمة المرور</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
         <button class="auth-btn" id="login-btn" onclick="doLogin()">🔐 دخول</button>
         <hr class="auth-divider"/>
-        <button class="google-btn" id="google-btn" onclick="doGoogleLogin()">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px"/>
-          تسجيل الدخول بـ Google
-        </button>
+
         <hr class="auth-divider"/>
         <button class="auth-reset" onclick="doReset()">نسيت كلمة المرور؟</button>
       </div>
@@ -204,6 +208,7 @@
       <!-- نموذج التسجيل -->
       <div id="register-form" style="display:none">
         <div class="auth-field"><label>البريد الإلكتروني</label><input type="email" id="reg-email" placeholder="example@gmail.com" dir="ltr"/></div>
+        <div class="auth-field"><label>رقم الموبايل</label><input type="tel" id="reg-phone" placeholder="+964 7XX XXX XXXX" dir="ltr"/></div>
         <div class="auth-field"><label>كلمة المرور (6 أحرف على الأقل)</label><input type="password" id="reg-pass" placeholder="••••••••"/></div>
         <div class="auth-field"><label>تأكيد كلمة المرور</label><input type="password" id="reg-pass2" placeholder="••••••••"/></div>
         <button class="auth-btn" id="reg-btn" onclick="doRegister()">✅ إنشاء الحساب</button>
@@ -216,10 +221,10 @@
         <div style="font-size:40px;margin-bottom:10px">📧</div>
         <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">تحقق من بريدك الإلكتروني</div>
         <div style="font-size:12px;color:#8bc34a" id="otp-email-label"></div>
-        <div style="font-size:11px;color:#666;margin-top:6px">أرسلنا رابط تسجيل الدخول إلى بريدك</div>
+        <div style="font-size:11px;color:#666;margin-top:6px">أرسلنا كود التحقق إلى بريدك</div>
       </div>
       <div class="auth-field">
-        <label>أو أدخل كود التحقق (6 أرقام)</label>
+        <label>أدخل كود التحقق (6 أرقام)</label>
         <input type="text" id="otp-input" placeholder="_ _ _ _ _ _" maxlength="6" inputmode="numeric" dir="ltr"
           style="text-align:center;font-size:24px;letter-spacing:8px;font-weight:700"
           oninput="this.value=this.value.replace(/\D/g,'').slice(0,6); if(this.value.length===6) verifyOTP()"/>
@@ -230,6 +235,21 @@
         <span id="resend-timer" style="font-size:11px;color:#666;display:none"></span>
       </div>
       <div style="text-align:center;margin-top:8px">
+        <button class="auth-reset" onclick="backToLogin()">← رجوع</button>
+      </div>
+    </div>
+
+    <!-- ── شاشة 3: تغيير كلمة المرور ── -->
+    <div id="auth-reset" style="display:none">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:40px;margin-bottom:10px">🔑</div>
+        <div style="font-size:15px;font-weight:700;color:#fff">تغيير كلمة المرور</div>
+      </div>
+      <div class="auth-field"><label>البريد الإلكتروني</label><input type="email" id="reset-email" placeholder="example@gmail.com" dir="ltr"/></div>
+      <div class="auth-field"><label>كلمة المرور الجديدة</label><input type="password" id="reset-pass" placeholder="••••••••"/></div>
+      <div class="auth-field"><label>تأكيد كلمة المرور الجديدة</label><input type="password" id="reset-pass2" placeholder="••••••••"/></div>
+      <button class="auth-btn" id="reset-btn" onclick="doResetSubmit()">📧 إرسال كود التحقق</button>
+      <div style="text-align:center;margin-top:10px">
         <button class="auth-reset" onclick="backToLogin()">← رجوع</button>
       </div>
     </div>
@@ -791,56 +811,53 @@ window.addEventListener('load', function() {
 </script>
 <script>
 // ══════════════════════════════════════
-//  AUTH — Firebase Authentication + Email OTP
+//  AUTH — EmailJS + OTP (بدون Firebase)
 // ══════════════════════════════════════
 
-// ── إعداد Firebase ──
-const _FB_CONFIG = {
-  apiKey:            "AIzaSyCe2KPpTglDlID027o_ZkySi8yrw0xv1rw",
-  authDomain:        "noc-calculator-ff405.firebaseapp.com",
-  projectId:         "noc-calculator-ff405",
-  storageBucket:     "noc-calculator-ff405.firebasestorage.app",
-  messagingSenderId: "395084955704",
-  appId:             "1:395084955704:web:2dac903b2f143a55a9e6cd",
-  measurementId:     "G-NWPDW8V59E"
-};
+const _USERS_KEY   = "noc_users_v2";
+const _SESSION_KEY = "noc_session_v2";
 
-let _fbApp, _fbAuth;
-function _initFirebase() {
-  if (_fbApp) return;
-  try {
-    _fbApp  = firebase.initializeApp(_FB_CONFIG);
-    _fbAuth = firebase.auth();
-    // مراقبة حالة تسجيل الدخول
-    _fbAuth.onAuthStateChanged(user => {
-      if (user) {
-        window._currentUser = { email: user.email || user.displayName || "مستخدم" };
-        _showApp();
-      }
-    });
-  } catch(e) { console.error("Firebase init error:", e); }
+// ── إعداد EmailJS ──
+const _EJS_SERVICE  = "service_k2gccmc";
+const _EJS_TEMPLATE = "template_j4ddnyd";
+const _EJS_PUBLIC   = "ZhLpGVJjguqWF-uKE";
+
+// ── قراءة/كتابة المستخدمين ──
+function _getUsers() {
+  try { return JSON.parse(localStorage.getItem(_USERS_KEY) || "{}"); } catch { return {}; }
+}
+function _saveUsers(u) { localStorage.setItem(_USERS_KEY, JSON.stringify(u)); }
+
+// ── تشفير كلمة المرور ──
+async function _hash(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
 }
 
-// ── OTP في الذاكرة (6 أرقام، صالح 10 دقائق) ──
-let _otpStore = null; // { code, email, expires, purpose }
+// ── الجلسة ──
+function _saveSession(email) {
+  localStorage.setItem(_SESSION_KEY, JSON.stringify({ email, ts: Date.now() }));
+  window._currentUser = { email };
+}
+function _loadSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(_SESSION_KEY) || "null");
+    if (s && (Date.now() - s.ts) < 30 * 24 * 3600 * 1000) return s;
+    return null;
+  } catch { return null; }
+}
+
+// ── OTP ──
+let _otpStore = null;
 let _resendTimer = null;
 
 function _generateOTP() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-// ── إعداد EmailJS لإرسال OTP ──
-const _EJS_SERVICE  = "service_k2gccmc";
-const _EJS_TEMPLATE = "template_j4ddnyd";
-const _EJS_PUBLIC   = "ZhLpGVJjguqWF-uKE";
-
 async function _sendOTP(email, purpose) {
   const code = _generateOTP();
   _otpStore = { code, email, expires: Date.now() + 10 * 60 * 1000, purpose };
-  if (_EJS_PUBLIC.startsWith("YOUR_")) {
-    console.info("OTP (test):", code);
-    return code;
-  }
   try {
     emailjs.init({ publicKey: _EJS_PUBLIC });
     await emailjs.send(_EJS_SERVICE, _EJS_TEMPLATE, {
@@ -849,45 +866,42 @@ async function _sendOTP(email, purpose) {
       app_name: "حاسبة استحقاقات — شركة نفط الشمال",
       expires_in: "10 دقائق"
     });
-  } catch(e) { console.warn("EmailJS error:", e); }
+  } catch(e) {
+    console.warn("EmailJS error:", e);
+  }
   return code;
 }
 
-// ── عرض شاشة OTP ──
+// ── شاشة OTP ──
 function _showOTPScreen(email) {
   document.getElementById("auth-main").style.display = "none";
   document.getElementById("auth-otp").style.display  = "block";
   document.getElementById("otp-email-label").textContent = email;
   document.getElementById("otp-input").value = "";
   document.getElementById("auth-msg").className = "auth-msg";
-  document.getElementById("otp-input").focus();
   _startResendTimer(60);
 }
 
 function backToLogin() {
   _otpStore = null;
-  document.getElementById("auth-otp").style.display  = "none";
-  document.getElementById("auth-main").style.display = "block";
+  document.getElementById("auth-otp").style.display   = "none";
+  document.getElementById("auth-reset").style.display = "none";
+  document.getElementById("auth-main").style.display  = "block";
   document.getElementById("auth-msg").className = "auth-msg";
   if (_resendTimer) clearInterval(_resendTimer);
 }
 
-// ── مؤقت إعادة الإرسال ──
 function _startResendTimer(seconds) {
-  const btn   = document.getElementById("resend-btn");
-  const timer = document.getElementById("resend-timer");
-  btn.style.display   = "none";
-  timer.style.display = "inline";
-  let remaining = seconds;
+  const btn = document.getElementById("resend-btn");
+  const tmr = document.getElementById("resend-timer");
+  btn.style.display = "none";
+  tmr.style.display = "inline";
+  let r = seconds;
   if (_resendTimer) clearInterval(_resendTimer);
   _resendTimer = setInterval(() => {
-    remaining--;
-    timer.textContent = `إعادة الإرسال بعد ${remaining}s`;
-    if (remaining <= 0) {
-      clearInterval(_resendTimer);
-      timer.style.display = "none";
-      btn.style.display   = "inline";
-    }
+    r--;
+    tmr.textContent = "إعادة الإرسال بعد " + r + "s";
+    if (r <= 0) { clearInterval(_resendTimer); tmr.style.display = "none"; btn.style.display = "inline"; }
   }, 1000);
 }
 
@@ -895,51 +909,59 @@ function _startResendTimer(seconds) {
 window.verifyOTP = async function() {
   const input = document.getElementById("otp-input").value.trim();
   const btn   = document.getElementById("otp-btn");
-  if (input.length !== 6) { showAuthMsg("أدخل الكود المكون من 6 أرقام", "error"); return; }
-  if (!_otpStore)          { showAuthMsg("انتهت الجلسة، أعد المحاولة", "error"); backToLogin(); return; }
-  if (Date.now() > _otpStore.expires) { showAuthMsg("انتهت صلاحية الكود (10 دقائق)، أعد الإرسال", "error"); return; }
-  if (input !== _otpStore.code)       { showAuthMsg("الكود غير صحيح، تحقق من بريدك", "error"); return; }
+  if (input.length !== 6)              { showAuthMsg("أدخل الكود المكون من 6 أرقام", "error"); return; }
+  if (!_otpStore)                      { showAuthMsg("انتهت الجلسة، أعد المحاولة", "error"); backToLogin(); return; }
+  if (Date.now() > _otpStore.expires)  { showAuthMsg("انتهت صلاحية الكود، أعد الإرسال", "error"); return; }
+  if (input !== _otpStore.code)        { showAuthMsg("الكود غير صحيح ❌", "error"); return; }
 
   btn.disabled = true; btn.textContent = "جارِ التحقق…";
-  try {
-    const email   = _otpStore.email;
-    const purpose = _otpStore.purpose;
-    _otpStore = null;
+  const { email, purpose } = _otpStore;
+  _otpStore = null;
 
+  try {
     if (purpose === "login") {
-      // تسجيل دخول Firebase بدون كلمة مرور (anonymous then link) — نستخدم custom token approach
-      // نعتمد على الجلسة المحلية بعد التحقق من OTP
-      window._currentUser = { email };
-      localStorage.setItem("noc_fb_session", JSON.stringify({ email, ts: Date.now() }));
+      _saveSession(email);
       showAuthMsg("مرحباً ✅", "success");
       setTimeout(() => _showApp(), 600);
 
     } else if (purpose === "register") {
       const pass = sessionStorage.getItem("_reg_pass");
+      const phone = sessionStorage.getItem("_reg_phone") || "";
       sessionStorage.removeItem("_reg_pass");
+      sessionStorage.removeItem("_reg_phone");
       if (!pass) { showAuthMsg("انتهت الجلسة، أعد التسجيل", "error"); backToLogin(); return; }
-      await _fbAuth.createUserWithEmailAndPassword(email, pass);
+      const users = _getUsers();
+      const h = await _hash(pass);
+      users[email] = { hash: h, phone, created: Date.now() };
+      _saveUsers(users);
+      _saveSession(email);
       showAuthMsg("تم إنشاء الحساب بنجاح ✅", "success");
+      setTimeout(() => _showApp(), 700);
 
     } else if (purpose === "reset") {
-      await _fbAuth.sendPasswordResetEmail(email);
-      showAuthMsg("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك ✅", "success");
-      setTimeout(() => backToLogin(), 2000);
+      const pass = sessionStorage.getItem("_new_pass");
+      sessionStorage.removeItem("_new_pass");
+      const users = _getUsers();
+      if (users[email] && pass) {
+        const h = await _hash(pass);
+        users[email].hash = h;
+        _saveUsers(users);
+      }
+      showAuthMsg("تم تغيير كلمة المرور ✅", "success");
+      setTimeout(() => backToLogin(), 1500);
     }
   } catch(e) {
     btn.disabled = false; btn.textContent = "✅ تحقق";
-    showAuthMsg(_fbErrMsg(e), "error");
+    showAuthMsg("حدث خطأ، حاول مرة أخرى", "error");
   }
 };
 
-// ── إعادة إرسال OTP ──
 window.resendOTP = async function() {
   if (!_otpStore) { backToLogin(); return; }
-  const email   = _otpStore.email;
-  const purpose = _otpStore.purpose;
+  const { email, purpose } = _otpStore;
   showAuthMsg("جارِ إعادة الإرسال…", "success");
   await _sendOTP(email, purpose);
-  showAuthMsg("تم إرسال كود جديد إلى بريدك 📧", "success");
+  showAuthMsg("تم إرسال كود جديد 📧", "success");
   _startResendTimer(60);
 };
 
@@ -951,15 +973,17 @@ window.doLogin = async function() {
   if (!email || !pass) { showAuthMsg("يرجى إدخال البريد وكلمة المرور", "error"); return; }
   btn.disabled = true; btn.textContent = "جارِ التحقق…";
   try {
-    await _fbAuth.signInWithEmailAndPassword(email, pass);
-    // بعد نجاح كلمة المرور → إرسال OTP
+    const users = _getUsers();
+    if (!users[email]) { showAuthMsg("البريد غير مسجل", "error"); btn.disabled=false; btn.textContent="🔐 دخول"; return; }
+    const h = await _hash(pass);
+    if (users[email].hash !== h) { showAuthMsg("كلمة المرور غير صحيحة", "error"); btn.disabled=false; btn.textContent="🔐 دخول"; return; }
     await _sendOTP(email, "login");
     showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
-    btn.disabled = false; btn.textContent = "🔐 دخول";
+    btn.disabled=false; btn.textContent="🔐 دخول";
     _showOTPScreen(email);
   } catch(e) {
-    btn.disabled = false; btn.textContent = "🔐 دخول";
-    showAuthMsg(_fbErrMsg(e), "error");
+    btn.disabled=false; btn.textContent="🔐 دخول";
+    showAuthMsg("حدث خطأ غير متوقع", "error");
   }
 };
 
@@ -969,80 +993,64 @@ window.doRegister = async function() {
   const pass  = document.getElementById("reg-pass").value;
   const pass2 = document.getElementById("reg-pass2").value;
   const btn   = document.getElementById("reg-btn");
-  if (!email || !pass)  { showAuthMsg("يرجى إدخال البريد وكلمة المرور", "error"); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAuthMsg("البريد الإلكتروني غير صالح", "error"); return; }
-  if (pass !== pass2)   { showAuthMsg("كلمتا المرور غير متطابقتين", "error"); return; }
-  if (pass.length < 6)  { showAuthMsg("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "error"); return; }
-  btn.disabled = true; btn.textContent = "جارِ الإنشاء…";
-  try {
-    // نتحقق إذا كان البريد مسجلاً مسبقاً
-    const methods = await _fbAuth.fetchSignInMethodsForEmail(email);
-    if (methods.length > 0) {
-      showAuthMsg("هذا البريد مسجل مسبقاً", "error");
-      btn.disabled = false; btn.textContent = "✅ إنشاء الحساب"; return;
-    }
-    // حفظ كلمة المرور مؤقتاً لاستخدامها بعد OTP
-    sessionStorage.setItem("_reg_pass", pass);
-    await _sendOTP(email, "register");
-    showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
-    btn.disabled = false; btn.textContent = "✅ إنشاء الحساب";
-    _showOTPScreen(email);
-  } catch(e) {
-    btn.disabled = false; btn.textContent = "✅ إنشاء الحساب";
-    showAuthMsg(_fbErrMsg(e), "error");
-  }
+  if (!email || !pass) { showAuthMsg("يرجى إدخال البريد وكلمة المرور", "error"); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAuthMsg("البريد غير صالح", "error"); return; }
+  if (pass !== pass2)  { showAuthMsg("كلمتا المرور غير متطابقتين", "error"); return; }
+  if (pass.length < 6) { showAuthMsg("كلمة المرور 6 أحرف على الأقل", "error"); return; }
+  btn.disabled=true; btn.textContent="جارِ الإنشاء…";
+  const users = _getUsers();
+  if (users[email]) { showAuthMsg("هذا البريد مسجل مسبقاً", "error"); btn.disabled=false; btn.textContent="✅ إنشاء الحساب"; return; }
+  const phone = document.getElementById("reg-phone").value.trim();
+  sessionStorage.setItem("_reg_pass", pass);
+  sessionStorage.setItem("_reg_phone", phone);
+  await _sendOTP(email, "register");
+  showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
+  btn.disabled=false; btn.textContent="✅ إنشاء الحساب";
+  _showOTPScreen(email);
 };
 
-// ── نسيت كلمة المرور ──
-window.doReset = async function() {
+// ── نسيت كلمة المرور — عرض شاشة التغيير ──
+window.doReset = function() {
   const email = document.getElementById("login-email").value.trim().toLowerCase();
-  if (!email) { showAuthMsg("أدخل بريدك الإلكتروني أولاً", "error"); return; }
-  try {
-    const methods = await _fbAuth.fetchSignInMethodsForEmail(email);
-    if (methods.length === 0) { showAuthMsg("البريد الإلكتروني غير مسجل", "error"); return; }
-    await _sendOTP(email, "reset");
-    showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
-    _showOTPScreen(email);
-  } catch(e) {
-    showAuthMsg(_fbErrMsg(e), "error");
-  }
+  document.getElementById("auth-main").style.display  = "none";
+  document.getElementById("auth-reset").style.display = "block";
+  if (email) document.getElementById("reset-email").value = email;
 };
 
-// ── تسجيل الدخول بـ Google ──
-window.doGoogleLogin = async function() {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await _fbAuth.signInWithPopup(provider);
-    // onAuthStateChanged يتولى الباقي
-  } catch(e) {
-    showAuthMsg(_fbErrMsg(e), "error");
-  }
+// ── تقديم طلب تغيير كلمة المرور ──
+window.doResetSubmit = async function() {
+  const email = document.getElementById("reset-email").value.trim().toLowerCase();
+  const pass  = document.getElementById("reset-pass").value;
+  const pass2 = document.getElementById("reset-pass2").value;
+  const btn   = document.getElementById("reset-btn");
+  if (!email)          { showAuthMsg("أدخل بريدك الإلكتروني", "error"); return; }
+  if (!pass)           { showAuthMsg("أدخل كلمة المرور الجديدة", "error"); return; }
+  if (pass.length < 6) { showAuthMsg("كلمة المرور 6 أحرف على الأقل", "error"); return; }
+  if (pass !== pass2)  { showAuthMsg("كلمتا المرور غير متطابقتين", "error"); return; }
+  const users = _getUsers();
+  if (!users[email])   { showAuthMsg("البريد الإلكتروني غير مسجل", "error"); return; }
+  btn.disabled = true; btn.textContent = "جارِ الإرسال…";
+  sessionStorage.setItem("_new_pass", pass);
+  await _sendOTP(email, "reset");
+  showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
+  btn.disabled = false; btn.textContent = "📧 إرسال كود التحقق";
+  document.getElementById("auth-reset").style.display = "none";
+  _showOTPScreen(email);
+};
+
+// ── Google (غير متاح بدون Firebase) ──
+window.doGoogleLogin = function() {
+  showAuthMsg("استخدم البريد وكلمة المرور للدخول", "error");
 };
 
 // ── تسجيل الخروج ──
-window.doLogout = async function() {
-  try { await _fbAuth.signOut(); } catch {}
-  localStorage.removeItem("noc_fb_session");
+window.doLogout = function() {
+  localStorage.removeItem(_SESSION_KEY);
   window._currentUser = null;
   _showAuth();
 };
 
-// ── رسائل الخطأ بالعربية ──
-function _fbErrMsg(e) {
-  const map = {
-    "auth/user-not-found":       "البريد الإلكتروني غير مسجل",
-    "auth/wrong-password":       "كلمة المرور غير صحيحة",
-    "auth/invalid-credential":   "البريد أو كلمة المرور غير صحيحة",
-    "auth/email-already-in-use": "هذا البريد مسجل مسبقاً",
-    "auth/invalid-email":        "البريد الإلكتروني غير صالح",
-    "auth/too-many-requests":    "محاولات كثيرة، انتظر قليلاً",
-    "auth/network-request-failed":"تعذّر الاتصال، تحقق من الإنترنت",
-    "auth/popup-closed-by-user": "تم إغلاق نافذة Google",
-  };
-  return map[e.code] || (e.message || "حدث خطأ غير متوقع");
-}
-
-// ── عرض / إخفاء الشاشات ──
+// ── عرض/إخفاء الشاشات ──
 function _showApp() {
   document.getElementById("auth-screen").style.display = "none";
   document.getElementById("app").style.display = "block";
@@ -1056,30 +1064,12 @@ function _showAuth() {
   backToLogin();
 }
 
-// ── فحص الجلسة عند التحميل ──
-function _checkAuth() {
-  _initFirebase();
-  // Firebase onAuthStateChanged يتحقق تلقائياً
-  // لكن نضيف timeout للتأكد
-  setTimeout(() => {
-    if (!window._currentUser) {
-      const s = JSON.parse(localStorage.getItem("noc_fb_session") || "null");
-      if (s && (Date.now() - s.ts) < 30 * 24 * 3600 * 1000) {
-        window._currentUser = { email: s.email };
-        _showApp();
-      } else {
-        _showAuth();
-      }
-    }
-  }, 1500);
-}
-
-// ── تبديل تبويب تسجيل الدخول / التسجيل ──
+// ── تبديل التبويب ──
 window.switchAuthTab = function(tab) {
-  document.getElementById("login-form").style.display    = tab === "login"    ? "block" : "none";
-  document.getElementById("register-form").style.display = tab === "register" ? "block" : "none";
-  document.getElementById("tab-login").className    = "auth-tab" + (tab === "login"    ? " active" : "");
-  document.getElementById("tab-register").className = "auth-tab" + (tab === "register" ? " active" : "");
+  document.getElementById("login-form").style.display    = tab==="login"    ? "block" : "none";
+  document.getElementById("register-form").style.display = tab==="register" ? "block" : "none";
+  document.getElementById("tab-login").className    = "auth-tab" + (tab==="login"    ? " active" : "");
+  document.getElementById("tab-register").className = "auth-tab" + (tab==="register" ? " active" : "");
   document.getElementById("auth-msg").className = "auth-msg";
 };
 
@@ -1089,10 +1079,29 @@ function showAuthMsg(text, type) {
   el.className = "auth-msg " + type;
 }
 
-// ── تشغيل فحص الجلسة ──
+// ── فحص الجلسة عند التحميل ──
+function _checkAuth() {
+  const s = _loadSession();
+  if (s?.email) {
+    window._currentUser = { email: s.email };
+    _showApp();
+  } else {
+    _showAuth();
+  }
+}
+
 window.addEventListener("load", function() {
   _checkAuth();
 });
+
+// ── تسجيل Service Worker للـ PWA ──
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function() {
+    navigator.serviceWorker.register("sw.js")
+      .then(() => console.log("SW registered"))
+      .catch(e => console.warn("SW error:", e));
+  });
+}
 </script>
 
 </body>
