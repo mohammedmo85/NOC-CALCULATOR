@@ -196,7 +196,7 @@
 
       <!-- نموذج الدخول -->
       <div id="login-form">
-        <div class="auth-field"><label>البريد الإلكتروني أو رقم الجوال</label><input type="text" id="login-email" placeholder="example@gmail.com أو 07XXXXXXXXX" dir="ltr" inputmode="email"/></div>
+        <div class="auth-field"><label>البريد الإلكتروني أو رقم الجوال</label><input type="text" id="login-email" placeholder="example@gmail.com أو XXXXXXXXX" dir="ltr" inputmode="email"/></div>
         <div class="auth-field"><label>كلمة المرور</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
         <button class="auth-btn" id="login-btn" onclick="doLogin()">🔐 دخول</button>
         <hr class="auth-divider"/>
@@ -246,7 +246,7 @@
         <div style="font-size:15px;font-weight:700;color:#fff">استعادة كلمة المرور</div>
         <div style="font-size:12px;color:#666;margin-top:6px">أدخل بريدك أو رقم جوالك لإرسال كود التحقق</div>
       </div>
-      <div class="auth-field"><label>البريد الإلكتروني أو رقم الجوال</label><input type="text" id="reset-email" placeholder="example@gmail.com أو 07XXXXXXXXX" dir="ltr"/></div>
+      <div class="auth-field"><label>البريد الإلكتروني أو رقم الجوال</label><input type="text" id="reset-email" placeholder="example@gmail.com أو XXXXXXXXX" dir="ltr"/></div>
       <button class="auth-btn" id="reset-btn" onclick="doResetSubmit()">📧 إرسال كود التحقق</button>
       <div style="text-align:center;margin-top:10px">
         <button class="auth-reset" onclick="backToLogin()">← رجوع</button>
@@ -816,11 +816,12 @@ function updateCommendation(id,k,v){state.commendations=state.commendations.map(
 //  INIT
 // ══════════════════════════════════════
 // تشغيل بعد تحميل الصفحة كاملاً
-window.addEventListener('load', function() {
+// يتم تشغيل loadSaved و calculate داخل _initApp
+function _initApp() {
   loadSaved();
   calculate();
-  // لا نستدعي render هنا — يتولى نظام المصادقة إظهار الشاشة الصحيحة
-});
+  _checkAuth();
+}
 </script>
 <script>
 // ══════════════════════════════════════
@@ -914,10 +915,15 @@ async function _sendOTP(identifier, purpose) {
   const isPhone = /^(\+9647|07)\d{9}$/.test(identifier.replace(/[\s\-]/g,""));
   _otpStore = { code, identifier, isPhone, expires: Date.now() + 10 * 60 * 1000, purpose };
   if (isPhone) {
-    await _sendOTPWhatsApp(identifier, code); // يرمي خطأ إذا فشل
+    await _sendOTPWhatsApp(identifier, code);
   } else {
     try { await _sendOTPEmail(identifier, code); } catch(e) { console.warn("EmailJS:", e); }
   }
+  // تعبئة تلقائية للكود في حقل الإدخال
+  setTimeout(() => {
+    const otpInput = document.getElementById("otp-input");
+    if (otpInput) { otpInput.value = code; otpInput.dispatchEvent(new Event("input")); }
+  }, 500);
   return code;
 }
 
@@ -1215,12 +1221,11 @@ function _checkAuth() {
   }
 }
 
-// تشغيل فحص الجلسة بشكل موثوق في PWA وغير PWA
+// تشغيل التطبيق بشكل موثوق في PWA وغير PWA
 if (document.readyState === "complete" || document.readyState === "interactive") {
-  setTimeout(_checkAuth, 0);
+  setTimeout(_initApp, 0);
 } else {
-  window.addEventListener("load", _checkAuth);
-  document.addEventListener("DOMContentLoaded", _checkAuth);
+  document.addEventListener("DOMContentLoaded", _initApp);
 }
 
 // ── تسجيل Service Worker للـ PWA ──
