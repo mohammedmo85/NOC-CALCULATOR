@@ -196,7 +196,7 @@
 
       <!-- نموذج الدخول -->
       <div id="login-form">
-        <div class="auth-field"><label>البريد الإلكتروني</label><input type="email" id="login-email" placeholder="example@gmail.com" dir="ltr"/></div>
+        <div class="auth-field"><label>البريد الإلكتروني أو رقم الجوال</label><input type="text" id="login-email" placeholder="example@gmail.com أو 07XXXXXXXXX" dir="ltr" inputmode="email"/></div>
         <div class="auth-field"><label>كلمة المرور</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
         <button class="auth-btn" id="login-btn" onclick="doLogin()">🔐 دخول</button>
         <hr class="auth-divider"/>
@@ -243,15 +243,25 @@
     <div id="auth-reset" style="display:none">
       <div style="text-align:center;margin-bottom:20px">
         <div style="font-size:40px;margin-bottom:10px">🔑</div>
-        <div style="font-size:15px;font-weight:700;color:#fff">تغيير كلمة المرور</div>
+        <div style="font-size:15px;font-weight:700;color:#fff">استعادة كلمة المرور</div>
+        <div style="font-size:12px;color:#666;margin-top:6px">أدخل بريدك لإرسال كود التحقق</div>
       </div>
       <div class="auth-field"><label>البريد الإلكتروني</label><input type="email" id="reset-email" placeholder="example@gmail.com" dir="ltr"/></div>
-      <div class="auth-field"><label>كلمة المرور الجديدة</label><input type="password" id="reset-pass" placeholder="••••••••"/></div>
-      <div class="auth-field"><label>تأكيد كلمة المرور الجديدة</label><input type="password" id="reset-pass2" placeholder="••••••••"/></div>
       <button class="auth-btn" id="reset-btn" onclick="doResetSubmit()">📧 إرسال كود التحقق</button>
       <div style="text-align:center;margin-top:10px">
         <button class="auth-reset" onclick="backToLogin()">← رجوع</button>
       </div>
+    </div>
+
+    <!-- ── شاشة 4: كلمة المرور الجديدة (بعد OTP) ── -->
+    <div id="auth-newpass" style="display:none">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:40px;margin-bottom:10px">🔒</div>
+        <div style="font-size:15px;font-weight:700;color:#fff">أدخل كلمة المرور الجديدة</div>
+      </div>
+      <div class="auth-field"><label>كلمة المرور الجديدة</label><input type="password" id="newpass1" placeholder="••••••••"/></div>
+      <div class="auth-field"><label>تأكيد كلمة المرور</label><input type="password" id="newpass2" placeholder="••••••••"/></div>
+      <button class="auth-btn" id="newpass-btn" onclick="doNewPassSubmit()">✅ تغيير كلمة المرور</button>
     </div>
 
     <div class="auth-msg" id="auth-msg"></div>
@@ -722,7 +732,10 @@ function render(){
       <!-- USER BAR -->
       <div class="user-bar" id="user-bar">
         <span style="font-size:16px">👤</span>
-        <span class="user-email">${window._currentUser ? window._currentUser.email : ''}</span>
+        <div style="flex:1;overflow:hidden">
+          <div class="user-email">${window._currentUser ? window._currentUser.email : ''}</div>
+          ${window._currentUser?.phone ? `<div style="font-size:10px;color:#666;margin-top:1px">📱 ${window._currentUser.phone}</div>` : ''}
+        </div>
         <button class="logout-btn" onclick="doLogout()">خروج 🚪</button>
       </div>
       <!-- HEADER -->
@@ -835,9 +848,9 @@ async function _hash(text) {
 }
 
 // ── الجلسة ──
-function _saveSession(email) {
-  localStorage.setItem(_SESSION_KEY, JSON.stringify({ email, ts: Date.now() }));
-  window._currentUser = { email };
+function _saveSession(email, phone) {
+  localStorage.setItem(_SESSION_KEY, JSON.stringify({ email, phone: phone||"", ts: Date.now() }));
+  window._currentUser = { email, phone: phone||"" };
 }
 function _loadSession() {
   try {
@@ -874,19 +887,23 @@ async function _sendOTP(email, purpose) {
 
 // ── شاشة OTP ──
 function _showOTPScreen(email) {
-  document.getElementById("auth-main").style.display = "none";
-  document.getElementById("auth-otp").style.display  = "block";
+  document.getElementById("auth-main").style.display    = "none";
+  document.getElementById("auth-reset").style.display   = "none";
+  document.getElementById("auth-newpass").style.display = "none";
+  document.getElementById("auth-otp").style.display     = "block";
   document.getElementById("otp-email-label").textContent = email;
   document.getElementById("otp-input").value = "";
   document.getElementById("auth-msg").className = "auth-msg";
+  document.getElementById("otp-input").focus();
   _startResendTimer(60);
 }
 
 function backToLogin() {
   _otpStore = null;
-  document.getElementById("auth-otp").style.display   = "none";
-  document.getElementById("auth-reset").style.display = "none";
-  document.getElementById("auth-main").style.display  = "block";
+  document.getElementById("auth-otp").style.display    = "none";
+  document.getElementById("auth-reset").style.display  = "none";
+  document.getElementById("auth-newpass").style.display = "none";
+  document.getElementById("auth-main").style.display   = "block";
   document.getElementById("auth-msg").className = "auth-msg";
   if (_resendTimer) clearInterval(_resendTimer);
 }
@@ -920,7 +937,9 @@ window.verifyOTP = async function() {
 
   try {
     if (purpose === "login") {
-      _saveSession(email);
+      const users = _getUsers();
+      const phone = users[email]?.phone || "";
+      _saveSession(email, phone);
       showAuthMsg("مرحباً ✅", "success");
       setTimeout(() => _showApp(), 600);
 
@@ -934,21 +953,15 @@ window.verifyOTP = async function() {
       const h = await _hash(pass);
       users[email] = { hash: h, phone, created: Date.now() };
       _saveUsers(users);
-      _saveSession(email);
+      _saveSession(email, phone);
       showAuthMsg("تم إنشاء الحساب بنجاح ✅", "success");
       setTimeout(() => _showApp(), 700);
 
     } else if (purpose === "reset") {
-      const pass = sessionStorage.getItem("_new_pass");
-      sessionStorage.removeItem("_new_pass");
-      const users = _getUsers();
-      if (users[email] && pass) {
-        const h = await _hash(pass);
-        users[email].hash = h;
-        _saveUsers(users);
-      }
-      showAuthMsg("تم تغيير كلمة المرور ✅", "success");
-      setTimeout(() => backToLogin(), 1500);
+      sessionStorage.setItem("_reset_email", email);
+      document.getElementById("auth-otp").style.display    = "none";
+      document.getElementById("auth-newpass").style.display = "block";
+      showAuthMsg("أدخل كلمة المرور الجديدة", "success");
     }
   } catch(e) {
     btn.disabled = false; btn.textContent = "✅ تحقق";
@@ -967,13 +980,27 @@ window.resendOTP = async function() {
 
 // ── تسجيل الدخول ──
 window.doLogin = async function() {
-  const email = document.getElementById("login-email").value.trim().toLowerCase();
-  const pass  = document.getElementById("login-pass").value;
-  const btn   = document.getElementById("login-btn");
-  if (!email || !pass) { showAuthMsg("يرجى إدخال البريد وكلمة المرور", "error"); return; }
+  const raw  = document.getElementById("login-email").value.trim();
+  const pass = document.getElementById("login-pass").value;
+  const btn  = document.getElementById("login-btn");
+  if (!raw || !pass) { showAuthMsg("يرجى إدخال البريد أو رقم الجوال وكلمة المرور", "error"); return; }
+
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+  const isPhone = /^(\+9647|07)\d{9}$/.test(raw.replace(/[\s\-]/g,""));
+  if (!isEmail && !isPhone) { showAuthMsg("أدخل بريد إلكتروني صالح أو رقم جوال صالح", "error"); return; }
+
   btn.disabled = true; btn.textContent = "جارِ التحقق…";
   try {
     const users = _getUsers();
+    let email = raw.toLowerCase();
+
+    if (isPhone) {
+      const phone = raw.replace(/[\s\-]/g,"");
+      const found = Object.entries(users).find(([,u]) => u.phone && u.phone.replace(/[\s\-]/g,"") === phone);
+      if (!found) { showAuthMsg("رقم الجوال غير مسجل", "error"); btn.disabled=false; btn.textContent="🔐 دخول"; return; }
+      email = found[0];
+    }
+
     if (!users[email]) { showAuthMsg("البريد غير مسجل", "error"); btn.disabled=false; btn.textContent="🔐 دخول"; return; }
     const h = await _hash(pass);
     if (users[email].hash !== h) { showAuthMsg("كلمة المرور غير صحيحة", "error"); btn.disabled=false; btn.textContent="🔐 دخول"; return; }
@@ -993,14 +1020,16 @@ window.doRegister = async function() {
   const pass  = document.getElementById("reg-pass").value;
   const pass2 = document.getElementById("reg-pass2").value;
   const btn   = document.getElementById("reg-btn");
+  const phone = document.getElementById("reg-phone").value.trim();
   if (!email || !pass) { showAuthMsg("يرجى إدخال البريد وكلمة المرور", "error"); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAuthMsg("البريد غير صالح", "error"); return; }
+  if (!phone) { showAuthMsg("يرجى إدخال رقم الجوال", "error"); return; }
+  if (!/^(\+9647|07)\d{9}$/.test(phone.replace(/[\s\-]/g,""))) { showAuthMsg("رقم الجوال غير صالح (مثال: 07XXXXXXXXX)", "error"); return; }
   if (pass !== pass2)  { showAuthMsg("كلمتا المرور غير متطابقتين", "error"); return; }
   if (pass.length < 6) { showAuthMsg("كلمة المرور 6 أحرف على الأقل", "error"); return; }
   btn.disabled=true; btn.textContent="جارِ الإنشاء…";
   const users = _getUsers();
   if (users[email]) { showAuthMsg("هذا البريد مسجل مسبقاً", "error"); btn.disabled=false; btn.textContent="✅ إنشاء الحساب"; return; }
-  const phone = document.getElementById("reg-phone").value.trim();
   sessionStorage.setItem("_reg_pass", pass);
   sessionStorage.setItem("_reg_phone", phone);
   await _sendOTP(email, "register");
@@ -1009,33 +1038,50 @@ window.doRegister = async function() {
   _showOTPScreen(email);
 };
 
-// ── نسيت كلمة المرور — عرض شاشة التغيير ──
+// ── نسيت كلمة المرور — عرض شاشة البريد ──
 window.doReset = function() {
-  const email = document.getElementById("login-email").value.trim().toLowerCase();
-  document.getElementById("auth-main").style.display  = "none";
-  document.getElementById("auth-reset").style.display = "block";
-  if (email) document.getElementById("reset-email").value = email;
+  const raw = document.getElementById("login-email").value.trim().toLowerCase();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+  document.getElementById("auth-main").style.display   = "none";
+  document.getElementById("auth-reset").style.display  = "block";
+  document.getElementById("auth-newpass").style.display = "none";
+  if (isEmail) document.getElementById("reset-email").value = raw;
 };
 
-// ── تقديم طلب تغيير كلمة المرور ──
+// ── إرسال OTP لاستعادة كلمة المرور ──
 window.doResetSubmit = async function() {
   const email = document.getElementById("reset-email").value.trim().toLowerCase();
-  const pass  = document.getElementById("reset-pass").value;
-  const pass2 = document.getElementById("reset-pass2").value;
   const btn   = document.getElementById("reset-btn");
-  if (!email)          { showAuthMsg("أدخل بريدك الإلكتروني", "error"); return; }
-  if (!pass)           { showAuthMsg("أدخل كلمة المرور الجديدة", "error"); return; }
-  if (pass.length < 6) { showAuthMsg("كلمة المرور 6 أحرف على الأقل", "error"); return; }
-  if (pass !== pass2)  { showAuthMsg("كلمتا المرور غير متطابقتين", "error"); return; }
+  if (!email) { showAuthMsg("أدخل بريدك الإلكتروني", "error"); return; }
   const users = _getUsers();
-  if (!users[email])   { showAuthMsg("البريد الإلكتروني غير مسجل", "error"); return; }
+  if (!users[email]) { showAuthMsg("البريد الإلكتروني غير مسجل", "error"); return; }
   btn.disabled = true; btn.textContent = "جارِ الإرسال…";
-  sessionStorage.setItem("_new_pass", pass);
   await _sendOTP(email, "reset");
   showAuthMsg("تم إرسال كود التحقق إلى بريدك 📧", "success");
   btn.disabled = false; btn.textContent = "📧 إرسال كود التحقق";
   document.getElementById("auth-reset").style.display = "none";
   _showOTPScreen(email);
+};
+
+// ── تغيير كلمة المرور بعد التحقق من OTP ──
+window.doNewPassSubmit = async function() {
+  const pass  = document.getElementById("newpass1").value;
+  const pass2 = document.getElementById("newpass2").value;
+  const btn   = document.getElementById("newpass-btn");
+  if (!pass)           { showAuthMsg("أدخل كلمة المرور الجديدة", "error"); return; }
+  if (pass.length < 6) { showAuthMsg("كلمة المرور 6 أحرف على الأقل", "error"); return; }
+  if (pass !== pass2)  { showAuthMsg("كلمتا المرور غير متطابقتين", "error"); return; }
+  btn.disabled = true; btn.textContent = "جارِ الحفظ…";
+  const email = sessionStorage.getItem("_reset_email");
+  const users = _getUsers();
+  if (users[email]) {
+    const h = await _hash(pass);
+    users[email].hash = h;
+    _saveUsers(users);
+  }
+  sessionStorage.removeItem("_reset_email");
+  showAuthMsg("تم تغيير كلمة المرور بنجاح ✅", "success");
+  setTimeout(() => backToLogin(), 1500);
 };
 
 // ── Google (غير متاح بدون Firebase) ──
@@ -1083,7 +1129,7 @@ function showAuthMsg(text, type) {
 function _checkAuth() {
   const s = _loadSession();
   if (s?.email) {
-    window._currentUser = { email: s.email };
+    window._currentUser = { email: s.email, phone: s.phone || "" };
     _showApp();
   } else {
     _showAuth();
