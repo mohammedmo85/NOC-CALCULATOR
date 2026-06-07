@@ -1,0 +1,45 @@
+{
+  "name": "noc-calculator",
+  "version": "1.0.0",
+  "description": "حاسبة استحقاقات الموظفين - شركة نفط الشمال | NOC Employees Benefits Calculator",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . --cors -l 3000",
+    "build": "echo 'Static PWA - no build required'",
+    "generate-icons": "node scripts/generate-icons.js",
+    "lint": "echo 'No linter configured'",
+    "test": "echo 'No tests configured'"
+  },
+  "keywords": [
+    "NOC",
+    "شركة نفط الشمال",
+    "PWA",
+    "calculator",
+    "حاسبة",
+    "استحقاقات",
+    "موظفين"
+  ],
+  "author": "شركة نفط الشمال - North Oil Company",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "serve": "^14.0.0",
+    "sharp": "^0.32.0"
+  },
+  "browserslist": [
+    "> 0.5%",
+    "last 2 versions",
+    "not dead",
+    "not IE 11"
+  ],
+  "pwa": {
+    "name": "حاسبة استحقاقات - شركة نفط الشمال",
+    "shortName": "NOC Calculator",
+    "themeColor": "#1b5e20",
+    "backgroundColor": "#1b5e20",
+    "display": "standalone",
+    "scope": "/",
+    "startUrl": "/"
+  }
+}
